@@ -9,6 +9,7 @@ import Table from '../components/Table';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
 import LoadingSpinner from '../components/LoadingSpinner';
+import Pagination from '../components/Pagination';
 import { getUsers, createUser, updateUser, deleteUser } from '../services/userService';
 import { getEmployees } from '../services/employeeService';
 
@@ -19,6 +20,12 @@ const UserManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -31,12 +38,14 @@ const UserManagement = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [usersData, employeesData] = await Promise.all([
-        getUsers(),
-        getEmployees()
+      const [usersResponse, employeesResponse] = await Promise.all([
+        getUsers({ page, limit, search: searchTerm }),
+        getEmployees({ limit: 1000 }) // fetch all for select dropdown
       ]);
-      setUsers(usersData);
-      setEmployees(employeesData);
+      setUsers(usersResponse.data);
+      setTotal(usersResponse.total);
+      setTotalPages(usersResponse.totalPages);
+      setEmployees(employeesResponse.data);
     } catch (error) {
       console.error('Error fetching user data:', error);
       toast.error('Failed to load user management data');
@@ -47,7 +56,16 @@ const UserManagement = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [page]);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1); // reset to page 1 on search
+      fetchData();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const handleAdd = () => {
     setEditingUser(null);
@@ -117,11 +135,7 @@ const UserManagement = () => {
     }
   };
 
-  const filteredUsers = users.filter(u => 
-    u.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (u.employee_name && u.employee_name.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredUsers = users; // Server-side filtering applied
 
   const getRoleBadge = (role) => {
     const styles = {
@@ -226,7 +240,16 @@ const UserManagement = () => {
             <p className="text-slate-500 mt-4 text-sm font-medium">Fetching accounts...</p>
           </div>
         ) : (
-          <Table columns={columns} data={filteredUsers} emptyMessage="No users matching description found" />
+          <>
+            <Table columns={columns} data={filteredUsers} emptyMessage="No users matching description found" />
+            <Pagination 
+              page={page} 
+              limit={limit} 
+              total={total} 
+              totalPages={totalPages} 
+              onPageChange={(newPage) => setPage(newPage)} 
+            />
+          </>
         )}
       </Card>
 

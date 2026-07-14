@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
+import SessionTimeout from '../components/SessionTimeout';
 import { Outlet, useLocation } from 'react-router-dom';
 
 const getPageTitle = (pathname) => {
@@ -13,6 +14,7 @@ const getPageTitle = (pathname) => {
     '/reports': 'Reports',
     '/settings': 'Settings',
     '/users': 'User Management',
+    '/profile': 'Profile',
   };
   return titles[pathname] || 'Dashboard';
 };
@@ -23,7 +25,8 @@ const MainLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <SessionTimeout>
+      <div className="flex min-h-screen bg-slate-50">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
@@ -42,7 +45,8 @@ const MainLayout = () => {
           <Outlet />
         </main>
       </div>
-    </div>
+      </div>
+    </SessionTimeout>
   );
 };
 

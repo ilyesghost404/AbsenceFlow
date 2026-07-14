@@ -361,42 +361,60 @@ const AdminDashboard = ({ onAction }) => {
       </div>
 
       {/* ── Quick Access Action Bar ──────────────────────────────────────── */}
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 px-2 py-1">
-        <div className="flex items-center w-full">
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           {[
             {
               label: 'Add User',
               icon: UserPlus,
-              iconBg: 'bg-blue-50',
-              iconColor: 'text-blue-600',
-              accent: 'hover:text-blue-600',
-              accentBar: 'bg-blue-500',
+              iconBg: 'bg-emerald-50',
+              iconColor: 'text-emerald-600',
+              accent: 'hover:text-emerald-700',
+              accentBar: 'bg-emerald-500',
               action: () => navigate('/users'),
             },
             {
               label: 'Manage Users',
               icon: Users,
+              iconBg: 'bg-blue-50',
+              iconColor: 'text-blue-600',
+              accent: 'hover:text-blue-700',
+              accentBar: 'bg-blue-500',
+              action: () => navigate('/users'),
+            },
+            {
+              label: 'Security Center',
+              icon: Shield,
+              iconBg: 'bg-red-50',
+              iconColor: 'text-red-600',
+              accent: 'hover:text-red-700',
+              accentBar: 'bg-red-500',
+              action: () => navigate('/admin/security'),
+            },
+            {
+              label: 'Activity Logs',
+              icon: Activity,
+              iconBg: 'bg-indigo-50',
+              iconColor: 'text-indigo-600',
+              accent: 'hover:text-indigo-700',
+              accentBar: 'bg-indigo-500',
+              action: () => document.getElementById('activity-logs-section')?.scrollIntoView({ behavior: 'smooth' }),
+            },
+            {
+              label: 'Roles & Permissions',
+              icon: Key,
               iconBg: 'bg-violet-50',
               iconColor: 'text-violet-600',
-              accent: 'hover:text-violet-600',
+              accent: 'hover:text-violet-700',
               accentBar: 'bg-violet-500',
               action: () => navigate('/users'),
             },
             {
-              label: 'Manage Roles',
-              icon: Shield,
-              iconBg: 'bg-amber-50',
-              iconColor: 'text-amber-600',
-              accent: 'hover:text-amber-600',
-              accentBar: 'bg-amber-500',
-              action: () => navigate('/users'),
-            },
-            {
-              label: 'Export Users',
+              label: 'Export Reports',
               icon: Download,
               iconBg: 'bg-teal-50',
               iconColor: 'text-teal-600',
-              accent: 'hover:text-teal-600',
+              accent: 'hover:text-teal-700',
               accentBar: 'bg-teal-500',
               action: async () => {
                 try {
@@ -410,9 +428,9 @@ const AdminDashboard = ({ onAction }) => {
                   const a    = document.createElement('a');
                   a.href = url; a.download = 'users_export.csv'; a.click();
                   URL.revokeObjectURL(url);
-                  toast.success('Users exported successfully');
+                  toast.success('Reports exported successfully');
                 } catch {
-                  toast.error('Failed to export users');
+                  toast.error('Failed to export reports');
                 }
               },
             },
@@ -420,53 +438,37 @@ const AdminDashboard = ({ onAction }) => {
               label: 'Settings',
               icon: Settings,
               iconBg: 'bg-slate-100',
-              iconColor: 'text-slate-500',
-              accent: 'hover:text-slate-700',
-              accentBar: 'bg-slate-400',
+              iconColor: 'text-slate-600',
+              accent: 'hover:text-slate-800',
+              accentBar: 'bg-slate-500',
               action: () => navigate('/settings'),
             },
-            {
-              label: 'Activity Logs',
-              icon: Activity,
-              iconBg: 'bg-indigo-50',
-              iconColor: 'text-indigo-600',
-              accent: 'hover:text-indigo-600',
-              accentBar: 'bg-indigo-500',
-              action: () => document.getElementById('activity-logs-section')?.scrollIntoView({ behavior: 'smooth' }),
-            },
-          ].map(({ label, icon: Icon, iconBg, iconColor, accent, accentBar, action }, idx, arr) => (
-            <div key={label} className="flex items-center flex-1">
-              <button
-                onClick={action}
-                className={`
-                  relative flex items-center justify-center gap-3 w-full px-3 py-3.5 rounded-xl
-                  text-slate-600 text-sm font-medium
-                  transition-all duration-200 group
-                  ${accent}
-                  hover:bg-slate-50
-                `}
-              >
-                {/* Icon bubble */}
-                <div className={`
-                  w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0
-                  ${iconBg}
-                  transition-transform duration-200 group-hover:scale-110
-                `}>
-                  <Icon size={15} className={iconColor} />
-                </div>
-                <span className="whitespace-nowrap">{label}</span>
-                {/* Coloured bottom accent on hover */}
-                <span className={`
-                  absolute bottom-0 left-1/2 -translate-x-1/2
-                  h-0.5 w-0 ${accentBar} rounded-full
-                  transition-all duration-200 group-hover:w-3/4
-                `} />
-              </button>
-              {/* Vertical divider between items */}
-              {idx < arr.length - 1 && (
-                <div className="w-px h-6 bg-slate-100 flex-shrink-0" />
-              )}
-            </div>
+          ].map(({ label, icon: Icon, iconBg, iconColor, accent, accentBar, action }) => (
+            <button
+              key={label}
+              onClick={action}
+              className={`
+                relative flex flex-col items-center justify-center gap-3 p-4 rounded-2xl
+                text-slate-600 text-sm font-semibold border border-transparent
+                transition-all duration-300 group
+                ${accent} hover:bg-slate-50 hover:border-slate-100 hover:shadow-sm
+              `}
+            >
+              {/* Icon bubble */}
+              <div className={`
+                w-12 h-12 rounded-xl flex items-center justify-center
+                ${iconBg} transition-transform duration-300 group-hover:-translate-y-1 group-hover:scale-105
+              `}>
+                <Icon size={20} className={iconColor} />
+              </div>
+              <span className="text-center">{label}</span>
+              {/* Coloured bottom accent on hover */}
+              <span className={`
+                absolute bottom-0 left-1/2 -translate-x-1/2
+                h-1 w-0 ${accentBar} rounded-t-lg
+                transition-all duration-300 group-hover:w-12
+              `} />
+            </button>
           ))}
         </div>
       </div>

@@ -39,18 +39,18 @@ const getDashboardStats = async (req, res) => {
       const employeeResult = await db.query("SELECT * FROM employees WHERE id = $1", [employeeId]);
       const employeeInfo = employeeResult.rows[0];
 
-      const pendingResult = await db.query("SELECT COUNT(*) FROM absences WHERE employee_id = $1 AND status = 'Pending'", [employeeId]);
+      const pendingResult = await db.query("SELECT COUNT(*) FROM absences WHERE employee_id = $1 AND status = 'Pending' AND source = 'employee_request'", [employeeId]);
       const pendingRequests = parseInt(pendingResult.rows[0].count);
 
-      const approvedResult = await db.query("SELECT COUNT(*) FROM absences WHERE employee_id = $1 AND status = 'Validated'", [employeeId]);
+      const approvedResult = await db.query("SELECT COUNT(*) FROM absences WHERE employee_id = $1 AND status = 'Validated' AND source = 'employee_request'", [employeeId]);
       const approvedRequests = parseInt(approvedResult.rows[0].count);
 
-      const totalResult = await db.query("SELECT COUNT(*) FROM absences WHERE employee_id = $1", [employeeId]);
+      const totalResult = await db.query("SELECT COUNT(*) FROM absences WHERE employee_id = $1 AND source = 'employee_request'", [employeeId]);
       const totalAbsences = parseInt(totalResult.rows[0].count);
 
       const recentAbsencesResult = await db.query(`
         SELECT * FROM absences 
-        WHERE employee_id = $1 
+        WHERE employee_id = $1 AND source = 'employee_request'
         ORDER BY created_at DESC 
         LIMIT 5
       `, [employeeId]);
@@ -123,13 +123,13 @@ const getDashboardStats = async (req, res) => {
     `, [today]);
     const missingCheckout = parseInt(missingCheckoutResult.rows[0].count);
 
-    const pendingResult = await db.query("SELECT COUNT(*) FROM absences WHERE status = 'Pending'");
+    const pendingResult = await db.query("SELECT COUNT(*) FROM absences WHERE status = 'Pending' AND source = 'employee_request'");
     const pendingRequests = parseInt(pendingResult.rows[0].count);
 
-    const approvedResult = await db.query("SELECT COUNT(*) FROM absences WHERE status = 'Validated'");
+    const approvedResult = await db.query("SELECT COUNT(*) FROM absences WHERE status = 'Validated' AND source = 'employee_request'");
     const approvedRequests = parseInt(approvedResult.rows[0].count);
 
-    const rejectedResult = await db.query("SELECT COUNT(*) FROM absences WHERE status = 'Rejected'");
+    const rejectedResult = await db.query("SELECT COUNT(*) FROM absences WHERE status = 'Rejected' AND source = 'employee_request'");
     const rejectedRequests = parseInt(rejectedResult.rows[0].count);
 
     const onLeaveTodayResult = await db.query(`

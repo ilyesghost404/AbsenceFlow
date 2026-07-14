@@ -1,8 +1,8 @@
 import api from "./api";
 
-export const getHolidays = async () => {
-  const response = await api.get("/holidays");
-  return response.data.data;
+export const getHolidays = async (params = {}) => {
+  const response = await api.get("/holidays", { params });
+  return response.data;
 };
 
 export const createHoliday = async (holidayData) => {

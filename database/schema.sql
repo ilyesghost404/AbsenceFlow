@@ -57,6 +57,7 @@ CREATE TABLE absences (
     end_date DATE NOT NULL,
     reason TEXT,
     status VARCHAR(30) DEFAULT 'Pending',
+    source VARCHAR(30) DEFAULT 'employee_request' NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     validated_at TIMESTAMP,
 
@@ -104,6 +105,15 @@ CHECK (
         'Sick Leave',
         'Training',
         'Other'
+    )
+);
+
+ALTER TABLE absences
+ADD CONSTRAINT valid_absence_source
+CHECK (
+    source IN (
+        'employee_request',
+        'automatic'
     )
 );
 

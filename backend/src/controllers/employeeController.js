@@ -2,8 +2,13 @@ const Employee = require("../models/Employee");
 
 const getEmployees = async (req, res) => {
     try {
-        const employees = await Employee.getAll();
-        res.json({ success: true, data: employees });
+        const { page, limit, search } = req.query;
+        const result = await Employee.getAll({
+            page: page ? parseInt(page, 10) : 1,
+            limit: limit ? parseInt(limit, 10) : 10,
+            search: search || ''
+        });
+        res.json({ success: true, ...result });
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: "Failed to fetch employees" });

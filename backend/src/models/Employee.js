@@ -1,9 +1,35 @@
 const db = require("../config/database");
 
 class Employee {
-    static async getAll() {
-        const result = await db.query("SELECT * FROM employees ORDER BY created_at DESC");
-        return result.rows;
+    static async getAll(params = {}) {
+        const { page = 1, limit = 10, search = '' } = params;
+        const offset = (page - 1) * limit;
+
+        let baseQuery = "FROM employees";
+        let countQuery = `SELECT COUNT(*) ${baseQuery}`;
+        let dataQuery = `SELECT * ${baseQuery}`;
+        const queryParams = [];
+        let whereClause = '';
+
+        if (search) {
+            whereClause = ` WHERE matricule ILIKE $1 OR first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1 OR department ILIKE $1`;
+            queryParams.push(`%${search}%`);
+            dataQuery += whereClause;
+            countQuery += whereClause;
+        }
+
+        dataQuery += ` ORDER BY created_at DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
+
+        const countResult = await db.query(countQuery, search ? [queryParams[0]] : []);
+        const dataResult = await db.query(dataQuery, [...queryParams, limit, offset]);
+
+        return {
+            data: dataResult.rows,
+            total: parseInt(countResult.rows[0].count, 10),
+            page: parseInt(page, 10),
+            limit: parseInt(limit, 10),
+            totalPages: Math.ceil(parseInt(countResult.rows[0].count, 10) / limit)
+        };
     }
 
     static async getById(id) {

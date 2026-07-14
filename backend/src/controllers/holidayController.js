@@ -2,8 +2,13 @@ const Holiday = require("../models/Holiday");
 
 const getHolidays = async (req, res) => {
   try {
-    const holidays = await Holiday.getAll();
-    res.json({ success: true, data: holidays });
+    const { page, limit, search } = req.query;
+    const result = await Holiday.getAll({
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10,
+        search: search || ''
+    });
+    res.json({ success: true, ...result });
   } catch (error) {
     console.error("Error fetching holidays:", error);
     res.status(500).json({ success: false, message: "Failed to fetch holidays" });

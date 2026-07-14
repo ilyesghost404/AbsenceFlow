@@ -3,6 +3,9 @@ import { AuthProvider, useAuth } from '../context/AuthContext';
 import ProtectedRoute from './ProtectedRoute';
 import MainLayout from '../layouts/MainLayout';
 import Login from '../pages/Login';
+import ForgotPassword from '../pages/ForgotPassword';
+import ResetPassword from '../pages/ResetPassword';
+import VerifyEmail from '../pages/VerifyEmail';
 import EmployeeDashboard from '../pages/EmployeeDashboard';
 import ManagerDashboard from '../pages/ManagerDashboard';
 import AdminDashboard from '../pages/AdminDashboard';
@@ -14,6 +17,8 @@ import Reports from '../pages/Reports';
 import UserManagement from '../pages/UserManagement';
 import Settings from '../pages/Settings';
 import Profile from '../pages/Profile';
+import SecuritySettings from '../pages/SecuritySettings';
+import AdminSecurityCenter from '../pages/AdminSecurityCenter';
 
 const DashboardRouter = () => {
   const { user } = useAuth();
@@ -37,6 +42,9 @@ const AppRoutes = () => {
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
 
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
@@ -47,6 +55,7 @@ const AppRoutes = () => {
               {/* Common Routes */}
               <Route path="/settings" element={<Settings />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/profile/security" element={<SecuritySettings />} />
               
               {/* Dashboard for all roles */}
               <Route element={<ProtectedRoute allowedRoles={['admin', 'manager', 'employee']} />}>
@@ -69,6 +78,7 @@ const AppRoutes = () => {
               {/* Admin only routes */}
               <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
                 <Route path="/users" element={<UserManagement />} />
+                <Route path="/admin/security" element={<AdminSecurityCenter />} />
               </Route>
             </Route>
           </Route>

@@ -5,6 +5,7 @@ import Button from '../components/Button';
 import Modal from '../components/Modal';
 import LoadingSpinner, { SkeletonTable } from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
+import Pagination from '../components/Pagination';
 import { getEmployees, createEmployee, updateEmployee, deleteEmployee } from '../services/employeeService';
 
 // Timezone-safe local date parser
@@ -50,7 +51,12 @@ const Employees = () => {
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [formData, setFormData] = useState({
     matricule: '',
     first_name: '',
@@ -65,8 +71,10 @@ const Employees = () => {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      const data = await getEmployees();
-      setEmployees(data);
+      const data = await getEmployees({ page, limit, search: searchTerm });
+      setEmployees(data.data);
+      setTotal(data.total);
+      setTotalPages(data.totalPages);
     } catch (error) {
       console.error('Error fetching employees:', error);
       toast.error('Failed to load employees');
@@ -77,7 +85,16 @@ const Employees = () => {
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
+  }, [page]);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1); // reset to page 1 on search
+      fetchEmployees();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const handleAdd = () => {
     setEditingEmployee(null);
@@ -144,7 +161,7 @@ const Employees = () => {
       
       return matchesSearch && matchesDept && matchesStatus;
     });
-  }, [employees, searchTerm, departmentFilter, statusFilter]);
+  }, [employees, searchTerm, departmentFilter]);
 
   // Get unique departments for filter
   const departments = useMemo(() => {
@@ -320,6 +337,14 @@ const Employees = () => {
                 </tbody>
               </table>
             </div>
+            
+            <Pagination 
+              page={page} 
+              limit={limit} 
+              total={total} 
+              totalPages={totalPages} 
+              onPageChange={(newPage) => setPage(newPage)} 
+            />
           </div>
         )}
       </div>

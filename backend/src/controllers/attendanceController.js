@@ -3,8 +3,13 @@ const { getHolidays } = require("../services/attendanceService");
 
 const getAttendance = async (req, res) => {
   try {
-    const attendanceRecords = await Attendance.getAll();
-    res.json({ success: true, data: attendanceRecords });
+    const { page, limit, search } = req.query;
+    const result = await Attendance.getAll({
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10,
+        search: search || ''
+    });
+    res.json({ success: true, ...result });
   } catch (error) {
     console.error("Error fetching attendance:", error);
     res.status(500).json({ success: false, message: "Failed to fetch attendance records" });
@@ -171,8 +176,13 @@ const checkOut = async (req, res) => {
 
 const getTodayAttendance = async (req, res) => {
   try {
-    const attendanceRecords = await Attendance.todayAttendance();
-    res.json({ success: true, data: attendanceRecords });
+    const { page, limit, search } = req.query;
+    const attendanceRecords = await Attendance.todayAttendance({
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 10,
+      search: search || ''
+    });
+    res.json({ success: true, ...attendanceRecords });
   } catch (error) {
     console.error("Error fetching today's attendance:", error);
     res.status(500).json({ success: false, message: "Failed to fetch today's attendance" });
@@ -181,8 +191,13 @@ const getTodayAttendance = async (req, res) => {
 
 const getAnomalies = async (req, res) => {
   try {
-    const anomalies = await Attendance.getAnomalies();
-    res.json({ success: true, data: anomalies });
+    const { page, limit, search } = req.query;
+    const anomalies = await Attendance.getAnomalies({
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 10,
+      search: search || ''
+    });
+    res.json({ success: true, ...anomalies });
   } catch (error) {
     console.error("Error fetching anomalies:", error);
     res.status(500).json({ success: false, message: "Failed to fetch attendance anomalies" });

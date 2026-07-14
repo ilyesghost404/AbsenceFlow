@@ -22,11 +22,7 @@ const Login = () => {
 
     try {
       const user = await login(username, password, rememberMe);
-      if (user?.role === 'manager') {
-        navigate('/employees');
-      } else {
-        navigate('/dashboard');
-      }
+      navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
@@ -113,6 +109,11 @@ const Login = () => {
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-300 cursor-pointer select-none">
                   Keep me signed in
                 </label>
+              </div>
+              <div className="text-sm">
+                <a href="/forgot-password" onClick={(e) => { e.preventDefault(); navigate('/forgot-password'); }} className="font-semibold text-blue-500 hover:text-blue-400 transition-colors">
+                  Forgot password?
+                </a>
               </div>
             </div>
 

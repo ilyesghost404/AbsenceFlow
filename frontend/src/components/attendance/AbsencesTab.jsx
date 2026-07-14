@@ -6,6 +6,7 @@ import Modal from '../../components/Modal';
 import LoadingSpinner, { SkeletonTable } from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
 import EmptyState from '../../components/EmptyState';
+import Pagination from '../../components/Pagination';
 import { getAnomalies, validateAnomaly } from '../../services/attendanceService';
 
 const AbsencesTab = () => {
@@ -25,25 +26,16 @@ const AbsencesTab = () => {
   const [statusFilter, setStatusFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
 
-  const filteredAnomalies = anomalies.filter(a => {
-    const matchesSearch = !searchTerm || 
-      (a.first_name && a.first_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (a.last_name && a.last_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (a.matricule && a.matricule.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const valStatus = a.validation_status || 'Pending';
-    const matchesStatus = statusFilter === 'All' || valStatus === statusFilter;
-    const matchesType = typeFilter === 'All' || a.anomaly_type === typeFilter;
-    
-    return matchesSearch && matchesStatus && matchesType;
-  });
+  // Pagination states
+  const [page, setPage] = useState(1);
+  const limit = 10;
 
   const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await getAnomalies();
-      setAnomalies(data);
+      const data = await getAnomalies({ page: 1, limit: 1000, search: '' });
+      setAnomalies(data.data || []);
     } catch (err) {
       console.error('Error fetching anomalies:', err);
       setError('Failed to load system absences/anomalies.');
@@ -56,6 +48,21 @@ const AbsencesTab = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const filteredAnomalies = Array.isArray(anomalies) ? anomalies.filter(a => {
+    const matchesSearch = !searchTerm || 
+      (a.first_name && a.first_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (a.last_name && a.last_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (a.matricule && a.matricule.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const valStatus = a.validation_status || 'Pending';
+    const matchesStatus = statusFilter === 'All' || valStatus === statusFilter;
+    const matchesType = typeFilter === 'All' || a.anomaly_type === typeFilter;
+    
+    return matchesSearch && matchesStatus && matchesType;
+  }) : [];
+
+  const paginatedAnomalies = filteredAnomalies.slice((page - 1) * limit, page * limit);
 
   const handleOpenValidate = (anomaly) => {
     setSelectedAnomaly(anomaly);
@@ -219,8 +226,8 @@ const AbsencesTab = () => {
                   <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
-                {filteredAnomalies.map((row, idx) => {
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {paginatedAnomalies.map((row, idx) => {
                   const typeStyle = getTypeStyle(row.anomaly_type);
                   const valStatus = row.validation_status || 'Pending';
                   return (
@@ -282,6 +289,15 @@ const AbsencesTab = () => {
               </tbody>
             </table>
           </div>
+          {!loading && filteredAnomalies.length > 0 && (
+            <Pagination 
+              page={page} 
+              limit={limit} 
+              total={filteredAnomalies.length} 
+              totalPages={Math.ceil(filteredAnomalies.length / limit)} 
+              onPageChange={(newPage) => setPage(newPage)} 
+            />
+          )}
         </div>
       )}
 

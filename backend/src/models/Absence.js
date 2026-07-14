@@ -1,18 +1,59 @@
 const db = require("../config/database");
 
 class Absence {
-    static async getAll() {
-        const result = await db.query(`
+    static async getAll(params = {}) {
+        const { page = 1, limit = 10, search = '', source } = params;
+        const offset = (page - 1) * limit;
+
+        let baseQuery = `
+            FROM absences
+            JOIN employees ON absences.employee_id = employees.id
+        `;
+        let countQuery = `SELECT COUNT(*) ${baseQuery}`;
+        let dataQuery = `
             SELECT 
                 absences.*,
                 CONCAT(employees.first_name, ' ', employees.last_name) AS employee_name,
                 employees.matricule,
                 employees.department
-            FROM absences
-            JOIN employees ON absences.employee_id = employees.id
-            ORDER BY absences.created_at DESC
-        `);
-        return result.rows;
+            ${baseQuery}
+        `;
+
+        const queryParams = [];
+        const conditions = [];
+
+        if (source) {
+            queryParams.push(source);
+            conditions.push(`absences.source = $${queryParams.length}`);
+        }
+
+        if (search) {
+            queryParams.push(`%${search}%`);
+            const searchIdx = queryParams.length;
+            conditions.push(`(employees.first_name ILIKE $${searchIdx} 
+                OR employees.last_name ILIKE $${searchIdx} 
+                OR employees.matricule ILIKE $${searchIdx}
+                OR absences.type ILIKE $${searchIdx})`);
+        }
+
+        if (conditions.length > 0) {
+            const whereClause = ` WHERE ${conditions.join(' AND ')}`;
+            dataQuery += whereClause;
+            countQuery += whereClause;
+        }
+
+        dataQuery += ` ORDER BY absences.created_at DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
+
+        const countResult = await db.query(countQuery, queryParams);
+        const dataResult = await db.query(dataQuery, [...queryParams, limit, offset]);
+
+        return {
+            data: dataResult.rows,
+            total: parseInt(countResult.rows[0].count, 10),
+            page: parseInt(page, 10),
+            limit: parseInt(limit, 10),
+            totalPages: Math.ceil(parseInt(countResult.rows[0].count, 10) / limit)
+        };
     }
 
     static async getByDate(date) {
@@ -43,12 +84,12 @@ class Absence {
     }
 
     static async create(absence) {
-        const { employee_id, type, start_date, end_date, reason } = absence;
+        const { employee_id, type, start_date, end_date, reason, source = 'employee_request' } = absence;
         const result = await db.query(
-            `INSERT INTO absences (employee_id, type, start_date, end_date, reason) 
-             VALUES ($1, $2, $3, $4, $5) 
+            `INSERT INTO absences (employee_id, type, start_date, end_date, reason, source) 
+             VALUES ($1, $2, $3, $4, $5, $6) 
              RETURNING *`,
-            [employee_id, type, start_date, end_date, reason]
+            [employee_id, type, start_date, end_date, reason, source]
         );
         return result.rows[0];
     }
@@ -92,19 +133,53 @@ class Absence {
         return result.rows[0];
     }
 
-    static async getByEmployeeId(employeeId) {
-        const result = await db.query(`
+    static async getByEmployeeId(employeeId, params = {}) {
+        const { page = 1, limit = 10, search = '', source } = params;
+        const offset = (page - 1) * limit;
+
+        let baseQuery = `
+            FROM absences
+            JOIN employees ON absences.employee_id = employees.id
+            WHERE absences.employee_id = $1
+        `;
+        let countQuery = `SELECT COUNT(*) ${baseQuery}`;
+        let dataQuery = `
             SELECT 
                 absences.*,
                 CONCAT(employees.first_name, ' ', employees.last_name) AS employee_name,
                 employees.matricule,
                 employees.department
-            FROM absences
-            JOIN employees ON absences.employee_id = employees.id
-            WHERE absences.employee_id = $1
-            ORDER BY absences.created_at DESC
-        `, [employeeId]);
-        return result.rows;
+            ${baseQuery}
+        `;
+
+        const queryParams = [employeeId];
+
+        if (source) {
+            queryParams.push(source);
+            const sourceFilter = ` AND absences.source = $${queryParams.length}`;
+            dataQuery += sourceFilter;
+            countQuery += sourceFilter;
+        }
+
+        if (search) {
+            queryParams.push(`%${search}%`);
+            const searchFilter = ` AND absences.type ILIKE $${queryParams.length}`;
+            dataQuery += searchFilter;
+            countQuery += searchFilter;
+        }
+
+        dataQuery += ` ORDER BY absences.created_at DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
+
+        const countResult = await db.query(countQuery, queryParams);
+        const dataResult = await db.query(dataQuery, [...queryParams, limit, offset]);
+
+        return {
+            data: dataResult.rows,
+            total: parseInt(countResult.rows[0].count, 10),
+            page: parseInt(page, 10),
+            limit: parseInt(limit, 10),
+            totalPages: Math.ceil(parseInt(countResult.rows[0].count, 10) / limit)
+        };
     }
 }
 

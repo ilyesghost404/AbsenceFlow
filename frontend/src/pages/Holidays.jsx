@@ -22,6 +22,7 @@ import EmptyState from '../components/EmptyState';
 import ErrorMessage from '../components/ErrorMessage';
 import Modal from '../components/Modal';
 import Table from '../components/Table';
+import Pagination from '../components/Pagination';
 import EmployeeHolidaysView from '../components/holidays/EmployeeHolidaysView';
 import { getHolidays, createHoliday, updateHoliday, deleteHoliday } from '../services/holidayService';
 import { useAuth } from '../context/AuthContext';
@@ -88,6 +89,10 @@ const Holidays = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
   
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  
   // Modals & Forms
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -109,8 +114,8 @@ const Holidays = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await getHolidays();
-      setHolidays(data);
+      const data = await getHolidays({ limit: 1000 });
+      setHolidays(data.data || []);
     } catch (error) {
       console.error('Error fetching holidays:', error);
       setError('Failed to load holidays');
@@ -481,60 +486,69 @@ const Holidays = () => {
                 />
               </div>
             ) : (
-              <Table 
-                columns={[
-                  {
-                    header: 'Holiday Name',
-                    render: (row) => (
-                      <div>
-                        <div className="font-semibold text-slate-800">{row.name}</div>
-                        {row.description && <div className="text-xs text-slate-500 truncate max-w-[200px]" title={row.description}>{row.description}</div>}
-                      </div>
-                    )
-                  },
-                  {
-                    header: 'Date',
-                    render: (row) => {
-                      const d = parseLocalDate(row.holiday_date);
-                      return d ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+              <>
+                <Table 
+                  columns={[
+                    {
+                      header: 'Holiday Name',
+                      render: (row) => (
+                        <div>
+                          <div className="font-semibold text-slate-800">{row.name}</div>
+                          {row.description && <div className="text-xs text-slate-500 truncate max-w-[200px]" title={row.description}>{row.description}</div>}
+                        </div>
+                      )
+                    },
+                    {
+                      header: 'Date',
+                      render: (row) => {
+                        const d = parseLocalDate(row.holiday_date);
+                        return d ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+                      }
+                    },
+                    {
+                      header: 'Day',
+                      render: (row) => {
+                        const d = parseLocalDate(row.holiday_date);
+                        return d ? d.toLocaleDateString('en-US', { weekday: 'long' }) : '—';
+                      }
+                    },
+                    {
+                      header: 'Type',
+                      render: (row) => {
+                        const t = row.type || 'National';
+                        const style = TYPE_COLORS[t] || TYPE_COLORS.National;
+                        return <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${style.bg} ${style.text}`}>{t}</span>;
+                      }
+                    },
+                    {
+                      header: 'Recurring',
+                      render: (row) => row.recurring ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full"><CheckCircle2 size={12}/> Yearly</span>
+                      ) : (
+                        <span className="text-xs text-slate-400">—</span>
+                      )
+                    },
+                    {
+                      header: 'Actions',
+                      render: (row) => (
+                        <div className="flex items-center gap-2">
+                          <Button variant="secondary" size="sm" onClick={() => handleEdit(row)} icon={Edit2} className="!p-2 text-blue-600 hover:bg-blue-50 hover:border-blue-200" title="Edit" />
+                          <Button variant="secondary" size="sm" onClick={(e) => handleDeleteRequest(row, e)} icon={Trash2} className="!p-2 text-red-600 hover:bg-red-50 hover:border-red-200" title="Delete" />
+                        </div>
+                      )
                     }
-                  },
-                  {
-                    header: 'Day',
-                    render: (row) => {
-                      const d = parseLocalDate(row.holiday_date);
-                      return d ? d.toLocaleDateString('en-US', { weekday: 'long' }) : '—';
-                    }
-                  },
-                  {
-                    header: 'Type',
-                    render: (row) => {
-                      const t = row.type || 'National';
-                      const style = TYPE_COLORS[t] || TYPE_COLORS.National;
-                      return <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${style.bg} ${style.text}`}>{t}</span>;
-                    }
-                  },
-                  {
-                    header: 'Recurring',
-                    render: (row) => row.recurring ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full"><CheckCircle2 size={12}/> Yearly</span>
-                    ) : (
-                      <span className="text-xs text-slate-400">—</span>
-                    )
-                  },
-                  {
-                    header: 'Actions',
-                    render: (row) => (
-                      <div className="flex items-center gap-2">
-                        <Button variant="secondary" size="sm" onClick={() => handleEdit(row)} icon={Edit2} className="!p-2 text-blue-600 hover:bg-blue-50 hover:border-blue-200" title="Edit" />
-                        <Button variant="secondary" size="sm" onClick={(e) => handleDeleteRequest(row, e)} icon={Trash2} className="!p-2 text-red-600 hover:bg-red-50 hover:border-red-200" title="Delete" />
-                      </div>
-                    )
-                  }
-                ]} 
-                data={filteredHolidays} 
-                className="border-0 rounded-none"
-              />
+                  ]} 
+                  data={filteredHolidays.slice((page - 1) * limit, page * limit)} 
+                  className="border-0 rounded-none"
+                />
+                <Pagination 
+                  page={page} 
+                  limit={limit} 
+                  total={filteredHolidays.length} 
+                  totalPages={Math.ceil(filteredHolidays.length / limit)} 
+                  onPageChange={(newPage) => setPage(newPage)} 
+                />
+              </>
             )}
           </div>
         </Card>

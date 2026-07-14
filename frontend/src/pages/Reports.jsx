@@ -22,6 +22,7 @@ import Table from '../components/Table';
 import Button from '../components/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Modal from '../components/Modal';
+import Pagination from '../components/Pagination';
 import {
   getReportStats,
   getMonthlyEvolution,
@@ -105,7 +106,7 @@ const Reports = () => {
           getAbsenceTypes(),
           getEmployeeRanking(),
           getDetailedAbsences(filters),
-          getEmployees(),
+          getEmployees({ limit: 1000 }),
         ]);
 
       if (statsRes.status === 'fulfilled') setStats(statsRes.value);
@@ -118,13 +119,21 @@ const Reports = () => {
 
       if (detailedRes.status === 'fulfilled') {
         setDetailedData(detailedRes.value.data || []);
-        setPagination(detailedRes.value.pagination);
+        setPagination({
+          page: detailedRes.value.page || 1,
+          limit: detailedRes.value.limit || 10,
+          total: detailedRes.value.total || 0,
+          totalPages: detailedRes.value.totalPages || 0
+        });
       } else {
         console.error('Detailed absences failed:', detailedRes.reason);
       }
 
       if (employeesRes.status === 'fulfilled') {
-        const deptList = [...new Set(employeesRes.value.map(e => e.department).filter(Boolean))];
+        const employeesData = Array.isArray(employeesRes.value)
+          ? employeesRes.value
+          : employeesRes.value.data || employeesRes.value.employees || [];
+        const deptList = [...new Set(employeesData.map(e => e.department).filter(Boolean))];
         setDepartments(deptList);
       }
 
@@ -558,36 +567,20 @@ const Reports = () => {
                 </div>
               )}
             </div>
-            {pagination && pagination.pages > 1 && (
-              <div className="p-6 border-t border-slate-100 flex justify-between items-center">
-                <p className="text-sm text-slate-500">
-                  Showing {((pagination.page - 1) * pagination.limit) + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={pagination.page <= 1}
-                    onClick={() => handleFilterChange('page', pagination.page - 1)}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={pagination.page >= pagination.pages}
-                    onClick={() => handleFilterChange('page', pagination.page + 1)}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
+            {pagination && (
+              <Pagination 
+                page={pagination.page} 
+                limit={pagination.limit} 
+                total={pagination.total} 
+                totalPages={pagination.totalPages} 
+                onPageChange={(newPage) => handleFilterChange('page', newPage)} 
+              />
             )}
           </Card>
         </>
       )}
 
-      <style jsx global>{`
+      <style>{`
         @media print {
           .print\\:hidden {
             display: none !important;

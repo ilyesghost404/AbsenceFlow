@@ -39,8 +39,8 @@ const runAttendanceScheduler = () => {
 
             // Create automatic absence record
             await db.query(
-              `INSERT INTO absences (employee_id, type, start_date, end_date, reason, status)
-               VALUES ($1, 'Other', CURRENT_DATE, CURRENT_DATE, 'Automatic absence - no check-in detected', 'Validated')
+              `INSERT INTO absences (employee_id, type, start_date, end_date, reason, status, source)
+               VALUES ($1, 'Other', CURRENT_DATE, CURRENT_DATE, 'Automatic absence - no check-in detected', 'Validated', 'automatic')
                ON CONFLICT DO NOTHING`,
               [employee.id]
             );

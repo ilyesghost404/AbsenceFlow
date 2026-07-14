@@ -47,7 +47,7 @@ export const getDetailedAbsences = async (filters = {}) => {
   });
 
   const response = await api.get(`/reports/detailed?${params}`);
-  return { data: response.data.data, pagination: response.data.pagination };
+  return response.data;
 };
 
 // Export absences to Excel (custom filter export) — triggers file download

@@ -5,9 +5,9 @@ export const getAttendance = async (employeeId, year, month) => {
   return response.data.data;
 };
 
-export const getAnomalies = async () => {
-  const response = await api.get('/attendance/anomalies');
-  return response.data.data;
+export const getAnomalies = async (params = { page: 1, limit: 10, search: '' }) => {
+  const response = await api.get('/attendance/anomalies', { params });
+  return response.data;
 };
 
 export const validateAnomaly = async (id, data) => {

@@ -21,18 +21,26 @@ async function calculateAbsenceWorkingDays(start_date, end_date) {
 
 const getAbsences = async (req, res) => {
     try {
-        let absences;
+        const { page, limit, search, source } = req.query;
+        const params = {
+            page: page ? parseInt(page, 10) : 1,
+            limit: limit ? parseInt(limit, 10) : 10,
+            search: search || '',
+            source: source || undefined
+        };
+
+        let result;
         if (req.user.role === "employee") {
             if (!req.user.employee_id) {
-                return res.json({ success: true, data: [] });
+                return res.json({ success: true, data: [], page: 1, limit: params.limit, total: 0, totalPages: 0 });
             }
-            absences = await Absence.getByEmployeeId(req.user.employee_id);
+            result = await Absence.getByEmployeeId(req.user.employee_id, params);
         } else {
-            absences = await Absence.getAll();
+            result = await Absence.getAll(params);
         }
-        res.json({ success: true, data: absences });
+        res.json({ success: true, ...result });
     } catch (error) {
-        console.error(error);
+        console.error("Error in getAbsences:", error);
         res.status(500).json({ success: false, message: "Failed to fetch absences" });
     }
 };
@@ -43,7 +51,7 @@ const getAbsencesByDate = async (req, res) => {
         const absences = await Absence.getByDate(date);
         res.json({ success: true, data: absences });
     } catch (error) {
-        console.error(error);
+        console.error("Error in getAbsencesByDate:", error);
         res.status(500).json({ success: false, message: "Failed to fetch absences by date" });
     }
 };
@@ -64,7 +72,7 @@ const getAbsenceById = async (req, res) => {
         
         res.json({ success: true, data: absence });
     } catch (error) {
-        console.error(error);
+        console.error("Error in getAbsenceById:", error);
         res.status(500).json({ success: false, message: "Failed to fetch absence" });
     }
 };
@@ -98,7 +106,8 @@ const createAbsence = async (req, res) => {
 
         const absence = await Absence.create({
             ...req.body,
-            employee_id: targetEmployeeId
+            employee_id: targetEmployeeId,
+            source: 'employee_request'
         });
 
         const responseMessage = holidayCount > 0
@@ -111,7 +120,7 @@ const createAbsence = async (req, res) => {
             message: responseMessage
         });
     } catch (error) {
-        console.error(error);
+        console.error("Error in createAbsence:", error);
         
         if (error.code === "23503") {
             return res.status(400).json({ success: false, message: "Employee not found" });
@@ -163,7 +172,7 @@ const updateAbsence = async (req, res) => {
             message: responseMessage
         });
     } catch (error) {
-        console.error(error);
+        console.error("Error in updateAbsence:", error);
         
         if (error.code === "23503") {
             return res.status(400).json({ success: false, message: "Employee not found" });
@@ -188,7 +197,7 @@ const deleteAbsence = async (req, res) => {
         
         res.json({ success: true, data: absence });
     } catch (error) {
-        console.error(error);
+        console.error("Error in deleteAbsence:", error);
         res.status(500).json({ success: false, message: "Failed to delete absence" });
     }
 };
@@ -223,7 +232,7 @@ const validateAbsence = async (req, res) => {
         
         res.json({ success: true, data: absence });
     } catch (error) {
-        console.error(error);
+        console.error("Error in validateAbsence:", error);
         res.status(500).json({ success: false, message: "Failed to validate absence" });
     }
 };
@@ -249,7 +258,7 @@ const rejectAbsence = async (req, res) => {
         
         res.json({ success: true, data: absence });
     } catch (error) {
-        console.error(error);
+        console.error("Error in rejectAbsence:", error);
         res.status(500).json({ success: false, message: "Failed to reject absence" });
     }
 };

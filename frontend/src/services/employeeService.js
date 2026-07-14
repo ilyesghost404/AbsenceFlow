@@ -1,8 +1,8 @@
 import api from './api';
 
-export const getEmployees = async () => {
-  const response = await api.get('/employees');
-  return response.data.data;
+export const getEmployees = async (params = {}) => {
+  const response = await api.get('/employees', { params });
+  return response.data;
 };
 
 export const getEmployeeById = async (id) => {

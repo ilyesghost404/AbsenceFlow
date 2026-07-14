@@ -1,8 +1,16 @@
 const db = require("../config/database");
 
 class User {
-  static async getAll() {
-    const result = await db.query(`
+  static async getAll(params = {}) {
+    const { page = 1, limit = 10, search = '' } = params;
+    const offset = (page - 1) * limit;
+
+    let baseQuery = `
+      FROM users u
+      LEFT JOIN employees e ON u.employee_id = e.id
+    `;
+    let countQuery = `SELECT COUNT(*) ${baseQuery}`;
+    let dataQuery = `
       SELECT 
         u.id, 
         u.username, 
@@ -10,14 +18,43 @@ class User {
         u.role, 
         u.employee_id, 
         u.is_active, 
+        u.is_verified,
         u.created_at, 
         u.updated_at,
+        u.locked_until,
+        u.two_factor_enabled,
+        (SELECT COUNT(*) FROM user_sessions us WHERE us.user_id = u.id) as active_sessions,
+        (SELECT MAX(last_activity) FROM user_sessions us WHERE us.user_id = u.id) as last_active,
         CONCAT(e.first_name, ' ', e.last_name) AS employee_name
-      FROM users u
-      LEFT JOIN employees e ON u.employee_id = e.id
-      ORDER BY u.created_at DESC
-    `);
-    return result.rows;
+      ${baseQuery}
+    `;
+
+    const queryParams = [];
+    let whereClause = '';
+
+    if (search) {
+      whereClause = `
+        WHERE u.username ILIKE $1 
+        OR u.email ILIKE $1 
+        OR CONCAT(e.first_name, ' ', e.last_name) ILIKE $1
+      `;
+      queryParams.push(`%${search}%`);
+      dataQuery += whereClause;
+      countQuery += whereClause;
+    }
+
+    dataQuery += ` ORDER BY u.created_at DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
+    
+    const countResult = await db.query(countQuery, search ? [queryParams[0]] : []);
+    const dataResult = await db.query(dataQuery, [...queryParams, limit, offset]);
+
+    return {
+      data: dataResult.rows,
+      total: parseInt(countResult.rows[0].count, 10),
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      totalPages: Math.ceil(parseInt(countResult.rows[0].count, 10) / limit)
+    };
   }
 
   static async getById(id) {
@@ -102,13 +139,163 @@ class User {
     return result.rows[0];
   }
 
-  static async recordActivity(actorId, actionType, targetUserId, description, ipAddress) {
+  static async recordActivity(actorId, actionType, targetUserId, description, ipAddress, browser = null, device = null) {
     const result = await db.query(`
-      INSERT INTO activity_logs (actor_id, action_type, target_user_id, description, ip_address)
+      INSERT INTO activity_logs (actor_id, action_type, target_user_id, description, ip_address, browser, device)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
+    `, [actorId || null, actionType, targetUserId || null, description || null, ipAddress || null, browser, device]);
+    return result.rows[0];
+  }
+
+  // --- Security & Login Tracking ---
+
+  static async incrementFailedAttempts(userId) {
+    const result = await db.query(`
+      UPDATE users 
+      SET failed_attempts = failed_attempts + 1
+      WHERE id = $1
+      RETURNING failed_attempts
+    `, [userId]);
+    return result.rows[0]?.failed_attempts || 0;
+  }
+
+  static async resetFailedAttempts(userId) {
+    await db.query(`
+      UPDATE users 
+      SET failed_attempts = 0, locked_until = NULL
+      WHERE id = $1
+    `, [userId]);
+  }
+
+  static async lockAccount(userId, durationMinutes) {
+    await db.query(`
+      UPDATE users 
+      SET locked_until = NOW() + ($2 || ' minutes')::interval
+      WHERE id = $1
+    `, [userId, durationMinutes]);
+  }
+
+  static async recordLoginHistory(userId, ipAddress, success = true, browser = null, device = null) {
+    const result = await db.query(`
+      INSERT INTO login_history (user_id, ip_address, success, browser, device)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
-    `, [actorId || null, actionType, targetUserId || null, description || null, ipAddress || null]);
+    `, [userId, ipAddress, success, browser, device]);
     return result.rows[0];
+  }
+
+  // --- Session Management ---
+
+  static async createSession(userId, tokenJti, ipAddress, browser, device, expiresAt) {
+    const result = await db.query(`
+      INSERT INTO user_sessions (user_id, token_jti, ip_address, browser, device, expires_at)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *
+    `, [userId, tokenJti, ipAddress, browser, device, expiresAt]);
+    return result.rows[0];
+  }
+
+  static async getSession(tokenJti) {
+    const result = await db.query(`
+      SELECT * FROM user_sessions WHERE token_jti = $1
+    `, [tokenJti]);
+    return result.rows[0];
+  }
+
+  static async updateSessionActivity(tokenJti) {
+    await db.query(`
+      UPDATE user_sessions SET last_activity = CURRENT_TIMESTAMP WHERE token_jti = $1
+    `, [tokenJti]);
+  }
+
+  static async deleteSession(tokenJti) {
+    await db.query(`
+      DELETE FROM user_sessions WHERE token_jti = $1
+    `, [tokenJti]);
+  }
+
+  static async deleteAllUserSessions(userId) {
+    await db.query(`
+      DELETE FROM user_sessions WHERE user_id = $1
+    `, [userId]);
+  }
+
+  static async getUserSessions(userId) {
+    const result = await db.query(`
+      SELECT * FROM user_sessions WHERE user_id = $1 ORDER BY last_activity DESC
+    `, [userId]);
+    return result.rows;
+  }
+
+  // --- Password Management ---
+
+  static async savePasswordResetToken(userId, tokenHash, expiresAt) {
+    const result = await db.query(`
+      INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+      VALUES ($1, $2, $3)
+      RETURNING *
+    `, [userId, tokenHash, expiresAt]);
+    return result.rows[0];
+  }
+
+  static async getPasswordResetToken(tokenHash) {
+    const result = await db.query(`
+      SELECT prt.*, u.username, u.email 
+      FROM password_reset_tokens prt
+      JOIN users u ON prt.user_id = u.id
+      WHERE prt.token_hash = $1 AND prt.expires_at > CURRENT_TIMESTAMP
+    `, [tokenHash]);
+    return result.rows[0];
+  }
+
+  static async deletePasswordResetToken(tokenId) {
+    await db.query(`
+      DELETE FROM password_reset_tokens WHERE id = $1
+    `, [tokenId]);
+  }
+
+  static async updatePassword(userId, passwordHash) {
+    await db.query(`
+      UPDATE users 
+      SET password_hash = $1, password_changed_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+    `, [passwordHash, userId]);
+  }
+
+  // --- Email Verification ---
+
+  static async saveVerificationToken(userId, tokenHash, expiresAt) {
+    const result = await db.query(`
+      INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)
+      VALUES ($1, $2, $3)
+      RETURNING *
+    `, [userId, tokenHash, expiresAt]);
+    return result.rows[0];
+  }
+
+  static async getVerificationToken(tokenHash) {
+    const result = await db.query(`
+      SELECT evt.*, u.username, u.email 
+      FROM email_verification_tokens evt
+      JOIN users u ON evt.user_id = u.id
+      WHERE evt.token_hash = $1 AND evt.expires_at > CURRENT_TIMESTAMP
+    `, [tokenHash]);
+    return result.rows[0];
+  }
+
+  static async verifyUserEmail(userId) {
+    await db.query(`
+      UPDATE users 
+      SET is_verified = TRUE
+      WHERE id = $1
+    `, [userId]);
+  }
+
+  static async deleteVerificationToken(tokenId) {
+    await db.query(`
+      DELETE FROM email_verification_tokens WHERE id = $1
+    `, [tokenId]);
   }
 }
 

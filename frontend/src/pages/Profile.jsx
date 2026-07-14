@@ -146,9 +146,14 @@ const Profile = () => {
           <h1 className="text-3xl font-bold text-slate-800 tracking-tight mb-1">My Profile</h1>
           <p className="text-slate-500 font-medium">View and manage your personal details</p>
         </div>
-        <Button icon={Edit2} onClick={handleEditClick} className="shadow-lg hover:shadow-blue-500/25 px-6">
-          Edit Profile
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button variant="secondary" icon={ShieldCheck} onClick={() => window.location.href='/profile/security'} className="px-6">
+            Security Settings
+          </Button>
+          <Button icon={Edit2} onClick={handleEditClick} className="shadow-lg hover:shadow-blue-500/25 px-6">
+            Edit Profile
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-8">

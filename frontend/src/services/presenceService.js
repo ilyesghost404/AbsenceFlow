@@ -35,7 +35,7 @@ export const checkOut = async (employeeId) => {
   return response.data.data;
 };
 
-export const getTodayAttendance = async () => {
-  const response = await api.get('/presence/today');
-  return response.data.data;
+export const getTodayAttendance = async (params = { page: 1, limit: 10, search: '' }) => {
+  const response = await api.get('/presence/today', { params });
+  return response.data;
 };

@@ -11,7 +11,8 @@ import {
   X,
   LayoutDashboard,
   CalendarDays,
-  User
+  User,
+  ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -25,7 +26,8 @@ const Sidebar = ({ isOpen, onClose }) => {
     if (user?.role === 'admin') {
       items.push(
         { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/users', label: 'Users', icon: Users }
+        { path: '/users', label: 'Users', icon: Users },
+        { path: '/admin/security', label: 'Security Center', icon: ShieldCheck }
       );
     } else if (user?.role === 'manager') {
       items.push(
@@ -103,32 +105,28 @@ const Sidebar = ({ isOpen, onClose }) => {
           </nav>
 
           <div className="p-4 border-t border-slate-700">
-            <div className="bg-gradient-to-r from-slate-800/50 to-slate-800/30 rounded-xl p-4 mb-3 border border-white/5">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg uppercase">
-                  {user?.username ? user.username[0] : 'U'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{user?.employee_name || user?.username || 'User'}</p>
-                  <p className="text-xs text-slate-400 truncate">{getRoleLabel(user?.role)}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-1">
+            <div className="space-y-2">
               <Link
                 to="/settings"
-                className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-300 hover:bg-white/10 hover:text-white transition-all duration-200"
+                className="flex items-center justify-between px-4 py-3.5 rounded-2xl bg-white/5 border border-white/5 text-slate-300 hover:bg-white/10 hover:text-white hover:shadow-lg transition-all duration-300 group"
               >
-                <Settings size={18} />
-                <span className="text-sm font-medium">Settings</span>
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 rounded-lg bg-slate-800 group-hover:bg-blue-500/20 transition-colors">
+                    <Settings size={20} className="group-hover:text-blue-400 transition-colors" />
+                  </div>
+                  <span className="text-base font-semibold">Settings</span>
+                </div>
               </Link>
               <button
                 onClick={logout}
-                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-300 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 cursor-pointer"
+                className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-white/5 border border-white/5 text-slate-300 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 hover:shadow-lg hover:shadow-red-500/10 transition-all duration-300 group cursor-pointer"
               >
-                <LogOut size={18} />
-                <span className="text-sm font-medium">Logout</span>
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 rounded-lg bg-slate-800 group-hover:bg-red-500/20 transition-colors">
+                    <LogOut size={20} className="group-hover:text-red-400 transition-colors" />
+                  </div>
+                  <span className="text-base font-semibold">Logout</span>
+                </div>
               </button>
             </div>
           </div>
@@ -180,32 +178,28 @@ const Sidebar = ({ isOpen, onClose }) => {
           </nav>
 
           <div className="p-4 border-t border-slate-700">
-            <div className="bg-gradient-to-r from-slate-800/50 to-slate-800/30 rounded-xl p-4 mb-3 border border-white/5">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg uppercase">
-                  {user?.username ? user.username[0] : 'U'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{user?.employee_name || user?.username || 'User'}</p>
-                  <p className="text-xs text-slate-400 truncate">{getRoleLabel(user?.role)}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-1">
+            <div className="space-y-2">
               <Link
                 to="/settings"
-                className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-300 hover:bg-white/10 hover:text-white transition-all duration-200"
+                className="flex items-center justify-between px-4 py-3.5 rounded-2xl bg-white/5 border border-white/5 text-slate-300 hover:bg-white/10 hover:text-white hover:shadow-lg transition-all duration-300 group"
               >
-                <Settings size={18} />
-                <span className="text-sm font-medium">Settings</span>
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 rounded-lg bg-slate-800 group-hover:bg-blue-500/20 transition-colors">
+                    <Settings size={20} className="group-hover:text-blue-400 transition-colors" />
+                  </div>
+                  <span className="text-base font-semibold">Settings</span>
+                </div>
               </Link>
               <button
                 onClick={logout}
-                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-300 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 cursor-pointer"
+                className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-white/5 border border-white/5 text-slate-300 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 hover:shadow-lg hover:shadow-red-500/10 transition-all duration-300 group cursor-pointer"
               >
-                <LogOut size={18} />
-                <span className="text-sm font-medium">Logout</span>
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 rounded-lg bg-slate-800 group-hover:bg-red-500/20 transition-colors">
+                    <LogOut size={20} className="group-hover:text-red-400 transition-colors" />
+                  </div>
+                  <span className="text-base font-semibold">Logout</span>
+                </div>
               </button>
             </div>
           </div>

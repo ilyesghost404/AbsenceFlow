@@ -1,8 +1,8 @@
 import api from './api';
 
-export const getUsers = async () => {
-  const response = await api.get('/users');
-  return response.data.data;
+export const getUsers = async (params = {}) => {
+  const response = await api.get('/users', { params });
+  return response.data;
 };
 
 export const createUser = async (userData) => {

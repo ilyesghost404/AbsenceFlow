@@ -1,9 +1,35 @@
 const db = require("../config/database");
 
 class Holiday {
-  static async getAll() {
-    const result = await db.query("SELECT * FROM holidays ORDER BY holiday_date ASC");
-    return result.rows;
+  static async getAll(params = {}) {
+    const { page = 1, limit = 10, search = '' } = params;
+    const offset = (page - 1) * limit;
+
+    let baseQuery = "FROM holidays";
+    let countQuery = `SELECT COUNT(*) ${baseQuery}`;
+    let dataQuery = `SELECT * ${baseQuery}`;
+    const queryParams = [];
+    let whereClause = '';
+
+    if (search) {
+        whereClause = ` WHERE name ILIKE $1 OR description ILIKE $1 OR type ILIKE $1`;
+        queryParams.push(`%${search}%`);
+        dataQuery += whereClause;
+        countQuery += whereClause;
+    }
+
+    dataQuery += ` ORDER BY holiday_date ASC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
+
+    const countResult = await db.query(countQuery, search ? [queryParams[0]] : []);
+    const dataResult = await db.query(dataQuery, [...queryParams, limit, offset]);
+
+    return {
+        data: dataResult.rows,
+        total: parseInt(countResult.rows[0].count, 10),
+        page: parseInt(page, 10),
+        limit: parseInt(limit, 10),
+        totalPages: Math.ceil(parseInt(countResult.rows[0].count, 10) / limit)
+    };
   }
 
   static async getById(id) {

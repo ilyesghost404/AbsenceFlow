@@ -1,8 +1,8 @@
 import api from './api';
 
-export const getAbsences = async () => {
-  const response = await api.get('/absences');
-  return response.data.data;
+export const getAbsences = async (params = {}) => {
+  const response = await api.get('/absences', { params: { source: 'employee_request', ...params } });
+  return response.data;
 };
 
 export const getAbsencesByDate = async (date) => {

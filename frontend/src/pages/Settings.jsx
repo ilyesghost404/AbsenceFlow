@@ -259,17 +259,17 @@ const Settings = () => {
   return (
     <div>
       {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-800 mb-1">Settings</h1>
-        <p className="text-slate-500 text-sm">Manage your account preferences and application settings</p>
+      <div className="mb-10">
+        <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight mb-2">Settings</h1>
+        <p className="text-slate-500 text-base">Manage your account preferences and application settings</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
 
         {/* ─── Sidebar ────────────────────────────────────────────────────── */}
         <div className="lg:col-span-1">
-          <Card className="p-3 sticky top-6">
-            <div className="space-y-1">
+          <Card className="p-4 sticky top-6 shadow-sm border border-slate-100">
+            <div className="space-y-2">
               {sections.map((section) => {
                 const Icon = section.icon;
                 const isActive = activeSection === section.id;
@@ -277,20 +277,20 @@ const Settings = () => {
                   <button
                     key={section.id}
                     onClick={() => setActiveSection(section.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 text-left group ${
+                    className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 text-left group ${
                       isActive
-                        ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-500/20'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+                        ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/30 -translate-y-0.5'
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 hover:shadow-sm'
                     }`}
                   >
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      isActive ? 'bg-white/20' : 'bg-slate-100 group-hover:bg-slate-200'
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
+                      isActive ? 'bg-white/20' : 'bg-slate-100 group-hover:bg-blue-50 group-hover:text-blue-600'
                     }`}>
-                      <Icon size={17} className={isActive ? 'text-white' : 'text-slate-500'} />
+                      <Icon size={22} className={isActive ? 'text-white' : 'text-slate-500 group-hover:text-blue-600 transition-colors'} />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-sm">{section.label}</p>
-                      <p className={`text-xs truncate ${isActive ? 'text-blue-100' : 'text-slate-400'}`}>
+                      <p className={`font-bold text-base mb-0.5 ${isActive ? 'text-white' : 'text-slate-800'}`}>{section.label}</p>
+                      <p className={`text-sm truncate ${isActive ? 'text-blue-100' : 'text-slate-500'}`}>
                         {section.desc}
                       </p>
                     </div>
@@ -306,21 +306,21 @@ const Settings = () => {
 
           {/* ═══════════════════════════ PROFILE ═══════════════════════════ */}
           {activeSection === 'profile' && (
-            <Card className="overflow-hidden" noPadding>
+            <Card className="overflow-hidden shadow-sm border border-slate-100" noPadding>
               {/* Header */}
-              <div className="px-8 py-6 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
-                <div className="flex items-center gap-4">
+              <div className="px-10 py-8 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                <div className="flex items-center gap-5">
                   {/* Avatar */}
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-blue-500/20">
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-3xl font-extrabold shadow-xl shadow-blue-500/20">
                     {(user?.username || 'U')[0].toUpperCase()}
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-slate-800">{profile?.full_name || user?.username || 'User'}</h2>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${getRoleBadge(user?.role).bg}`}>
+                    <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">{profile?.full_name || user?.username || 'User'}</h2>
+                    <div className="flex items-center gap-3 mt-2">
+                      <span className={`text-sm px-3 py-1 rounded-full border font-bold ${getRoleBadge(user?.role).bg}`}>
                         {getRoleBadge(user?.role).label}
                       </span>
-                      <span className="text-xs text-slate-400">
+                      <span className="text-sm font-medium text-slate-500">
                         Member since {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—'}
                       </span>
                     </div>
@@ -329,44 +329,44 @@ const Settings = () => {
               </div>
 
               {/* Form */}
-              <div className="p-8">
+              <div className="p-10">
                 {profileLoading ? <FormSkeleton /> : (
-                  <form onSubmit={handleProfileSave} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <form onSubmit={handleProfileSave} className="space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Username</label>
+                        <label className="block text-base font-bold text-slate-800 mb-2">Username</label>
                         <input
                           type="text"
                           value={profileForm.username}
                           onChange={(e) => setProfileForm(f => ({ ...f, username: e.target.value }))}
-                          className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-800
-                                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                          className="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-xl text-base text-slate-800 font-medium
+                                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Email</label>
+                        <label className="block text-base font-bold text-slate-800 mb-2">Email</label>
                         <input
                           type="email"
                           value={profileForm.email}
                           onChange={(e) => setProfileForm(f => ({ ...f, email: e.target.value }))}
-                          className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-800
-                                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                          className="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-xl text-base text-slate-800 font-medium
+                                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm"
                         />
                       </div>
                     </div>
 
                     {/* Read-only info */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Role</label>
-                        <div className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm text-slate-500 capitalize">
+                        <label className="block text-base font-bold text-slate-800 mb-2">Role</label>
+                        <div className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-xl text-base font-medium text-slate-500 capitalize shadow-inner">
                           {getRoleBadge(user?.role).label}
                         </div>
                       </div>
                       {profile?.department && (
                         <div>
-                          <label className="block text-sm font-semibold text-slate-700 mb-2">Department</label>
-                          <div className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm text-slate-500">
+                          <label className="block text-base font-bold text-slate-800 mb-2">Department</label>
+                          <div className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-xl text-base font-medium text-slate-500 shadow-inner">
                             {profile.department}
                           </div>
                         </div>
@@ -377,10 +377,10 @@ const Settings = () => {
                       <button
                         type="submit"
                         disabled={profileSaving}
-                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-semibold
-                                   hover:bg-blue-700 transition-all shadow-sm hover:shadow-md disabled:opacity-50"
+                        className="flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-xl text-base font-bold
+                                   hover:bg-blue-700 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
                       >
-                        {profileSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                        {profileSaving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
                         Save Changes
                       </button>
                     </div>
@@ -392,18 +392,18 @@ const Settings = () => {
 
           {/* ═══════════════════════ NOTIFICATIONS ═══════════════════════ */}
           {activeSection === 'notifications' && (
-            <Card className="overflow-hidden" noPadding>
-              <div className="px-8 py-6 border-b border-slate-100">
-                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                  <Bell size={22} className="text-blue-600" />
+            <Card className="overflow-hidden shadow-sm border border-slate-100" noPadding>
+              <div className="px-10 py-8 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+                  <Bell size={26} className="text-blue-600" />
                   Notification Preferences
                 </h2>
-                <p className="text-sm text-slate-500 mt-1">Choose which notifications you want to receive</p>
+                <p className="text-base font-medium text-slate-500 mt-2">Choose which notifications you want to receive</p>
               </div>
 
-              <div className="p-8">
+              <div className="p-10">
                 {notifsLoading ? <FormSkeleton /> : (
-                  <div className="space-y-1">
+                  <div className="space-y-4">
                     {[
                       {
                         key: 'absence_notifications',
@@ -436,22 +436,25 @@ const Settings = () => {
                     ].map(({ key, icon: Icon, label, desc, color, bg }) => (
                       <div
                         key={key}
-                        className="flex items-center justify-between gap-4 px-5 py-5 rounded-xl
-                                   hover:bg-slate-50 transition-colors group"
+                        className="flex items-center justify-between gap-6 px-6 py-6 rounded-2xl border border-slate-100 bg-white
+                                   hover:bg-slate-50 hover:shadow-sm hover:border-slate-200 transition-all group cursor-pointer"
+                        onClick={() => handleNotifToggle(key, !(notifs?.[key] ?? true))}
                       >
-                        <div className="flex items-center gap-4">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bg} transition-transform group-hover:scale-105`}>
-                            <Icon size={18} className={color} />
+                        <div className="flex items-center gap-5">
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${bg} transition-transform group-hover:scale-110 shadow-sm`}>
+                            <Icon size={24} className={color} />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-slate-800">{label}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
+                            <p className="text-base font-bold text-slate-900">{label}</p>
+                            <p className="text-sm font-medium text-slate-500 mt-1">{desc}</p>
                           </div>
                         </div>
-                        <Toggle
-                          checked={notifs?.[key] ?? true}
-                          onChange={(val) => handleNotifToggle(key, val)}
-                        />
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Toggle
+                            checked={notifs?.[key] ?? true}
+                            onChange={(val) => handleNotifToggle(key, val)}
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -462,20 +465,20 @@ const Settings = () => {
 
           {/* ═══════════════════════ APPEARANCE ═════════════════════════ */}
           {activeSection === 'appearance' && (
-            <div className="space-y-6">
+            <div className="space-y-8">
               {/* Theme */}
-              <Card className="overflow-hidden" noPadding>
-                <div className="px-8 py-6 border-b border-slate-100">
-                  <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                    <Palette size={22} className="text-blue-600" />
+              <Card className="overflow-hidden shadow-sm border border-slate-100" noPadding>
+                <div className="px-10 py-8 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                  <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+                    <Palette size={26} className="text-blue-600" />
                     Theme
                   </h2>
-                  <p className="text-sm text-slate-500 mt-1">Select your preferred color scheme</p>
+                  <p className="text-base font-medium text-slate-500 mt-2">Select your preferred color scheme</p>
                 </div>
 
-                <div className="p-8">
+                <div className="p-10">
                   {appearanceLoading ? <FormSkeleton /> : (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                       {[
                         { id: 'light',  label: 'Light',  icon: Sun,     desc: 'Clean and bright' },
                         { id: 'dark',   label: 'Dark',   icon: Moon,    desc: 'Easy on the eyes' },
@@ -485,29 +488,22 @@ const Settings = () => {
                           key={id}
                           onClick={() => handleAppearanceChange('theme', id)}
                           className={`
-                            flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200
-                            ${appearance.theme === id
-                              ? 'border-blue-500 bg-blue-50/50 shadow-md shadow-blue-500/10'
-                              : 'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50'
+                            flex flex-col items-center gap-4 p-8 rounded-3xl border-2 transition-all duration-300
+                            ${appearance?.theme === id
+                              ? 'border-blue-500 bg-blue-50/80 shadow-lg shadow-blue-500/20 scale-105'
+                              : 'border-slate-100 bg-white hover:border-slate-300 hover:bg-slate-50 hover:shadow-md'
                             }
                           `}
                         >
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                            appearance.theme === id ? 'bg-blue-100' : 'bg-slate-100'
+                          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-colors ${
+                            appearance?.theme === id ? 'bg-blue-100' : 'bg-slate-100'
                           }`}>
-                            <Icon size={22} className={appearance.theme === id ? 'text-blue-600' : 'text-slate-500'} />
+                            <Icon size={28} className={appearance?.theme === id ? 'text-blue-600' : 'text-slate-500'} />
                           </div>
                           <div className="text-center">
-                            <p className={`text-sm font-semibold ${
-                              appearance.theme === id ? 'text-blue-700' : 'text-slate-700'
-                            }`}>{label}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
+                            <p className={`font-bold text-lg ${appearance?.theme === id ? 'text-blue-900' : 'text-slate-800'}`}>{label}</p>
+                            <p className="text-sm font-medium text-slate-500 mt-1">{desc}</p>
                           </div>
-                          {appearance.theme === id && (
-                            <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center">
-                              <CheckCircle2 size={14} className="text-white" />
-                            </div>
-                          )}
                         </button>
                       ))}
                     </div>
@@ -515,46 +511,52 @@ const Settings = () => {
                 </div>
               </Card>
 
-              {/* Layout Options */}
-              <Card className="overflow-hidden" noPadding>
-                <div className="px-8 py-6 border-b border-slate-100">
-                  <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <LayoutGrid size={20} className="text-blue-600" />
-                    Layout
+              {/* Interface Settings */}
+              <Card className="overflow-hidden shadow-sm border border-slate-100" noPadding>
+                <div className="px-10 py-8 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                  <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+                    <LayoutGrid size={26} className="text-blue-600" />
+                    Interface Settings
                   </h2>
+                  <p className="text-base font-medium text-slate-500 mt-2">Customize how AbsenceFlow looks and feels</p>
                 </div>
-                <div className="p-8 space-y-1">
+                <div className="p-10 space-y-4">
                   {!appearanceLoading && (
                     <>
-                      <div className="flex items-center justify-between px-5 py-5 rounded-xl hover:bg-slate-50 transition-colors group">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center group-hover:scale-105 transition-transform">
-                            <LayoutGrid size={18} className="text-slate-500" />
+                      <div className="flex items-center justify-between gap-6 px-6 py-6 rounded-2xl border border-slate-100 bg-white hover:bg-slate-50 hover:shadow-sm hover:border-slate-200 transition-all cursor-pointer group" onClick={() => handleAppearanceChange('compact_mode', !(appearance?.compact_mode))}>
+                        <div className="flex items-center gap-5">
+                          <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                            <LayoutGrid size={24} className="text-slate-600" />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-slate-800">Compact Mode</p>
-                            <p className="text-xs text-slate-400 mt-0.5">Reduce spacing and padding for more content</p>
+                            <p className="text-base font-bold text-slate-900">Compact Mode</p>
+                            <p className="text-sm font-medium text-slate-500 mt-1">Reduce spacing to fit more content on screen</p>
                           </div>
                         </div>
-                        <Toggle
-                          checked={appearance.compact_mode}
-                          onChange={(val) => handleAppearanceChange('compact_mode', val)}
-                        />
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Toggle
+                            checked={appearance?.compact_mode}
+                            onChange={(val) => handleAppearanceChange('compact_mode', val)}
+                          />
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between px-5 py-5 rounded-xl hover:bg-slate-50 transition-colors group">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center group-hover:scale-105 transition-transform">
-                            <PanelLeftClose size={18} className="text-slate-500" />
+
+                      <div className="flex items-center justify-between gap-6 px-6 py-6 rounded-2xl border border-slate-100 bg-white hover:bg-slate-50 hover:shadow-sm hover:border-slate-200 transition-all cursor-pointer group" onClick={() => handleAppearanceChange('sidebar_collapsed', !(appearance?.sidebar_collapsed))}>
+                        <div className="flex items-center gap-5">
+                          <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                            <PanelLeftClose size={24} className="text-slate-600" />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-slate-800">Sidebar Collapsed</p>
-                            <p className="text-xs text-slate-400 mt-0.5">Show a minimal sidebar with icons only</p>
+                            <p className="text-base font-bold text-slate-900">Collapse Sidebar by Default</p>
+                            <p className="text-sm font-medium text-slate-500 mt-1">Start with a minimized navigation menu</p>
                           </div>
                         </div>
-                        <Toggle
-                          checked={appearance.sidebar_collapsed}
-                          onChange={(val) => handleAppearanceChange('sidebar_collapsed', val)}
-                        />
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Toggle
+                            checked={appearance?.sidebar_collapsed}
+                            onChange={(val) => handleAppearanceChange('sidebar_collapsed', val)}
+                          />
+                        </div>
                       </div>
                     </>
                   )}
@@ -565,60 +567,60 @@ const Settings = () => {
 
           {/* ═══════════════════════ SECURITY ═══════════════════════════ */}
           {activeSection === 'security' && (
-            <div className="space-y-6">
+            <div className="space-y-8">
 
               {/* Change Password */}
-              <Card className="overflow-hidden" noPadding>
-                <div className="px-8 py-6 border-b border-slate-100">
-                  <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                    <Lock size={22} className="text-blue-600" />
+              <Card className="overflow-hidden shadow-sm border border-slate-100" noPadding>
+                <div className="px-10 py-8 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                  <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+                    <Lock size={26} className="text-blue-600" />
                     Change Password
                   </h2>
-                  <p className="text-sm text-slate-500 mt-1">Keep your account secure with a strong password</p>
+                  <p className="text-base font-medium text-slate-500 mt-2">Keep your account secure with a strong password</p>
                 </div>
 
-                <div className="p-8">
-                  <form onSubmit={handlePasswordChange} className="space-y-5 max-w-lg">
+                <div className="p-10">
+                  <form onSubmit={handlePasswordChange} className="space-y-6 max-w-lg">
                     {/* Current Password */}
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Current Password</label>
+                      <label className="block text-base font-bold text-slate-800 mb-2">Current Password</label>
                       <div className="relative">
                         <input
                           type={showCurrentPw ? 'text' : 'password'}
                           value={pwForm.current_password}
                           onChange={(e) => setPwForm(f => ({ ...f, current_password: e.target.value }))}
-                          className="w-full px-4 py-3 pr-12 bg-white border border-slate-200 rounded-xl text-sm
-                                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                          className="w-full px-5 py-3.5 pr-12 bg-white border border-slate-200 rounded-xl text-base font-medium
+                                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm"
                           placeholder="Enter current password"
                         />
                         <button
                           type="button"
                           onClick={() => setShowCurrentPw(!showCurrentPw)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                         >
-                          {showCurrentPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                          {showCurrentPw ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
                       </div>
                     </div>
 
                     {/* New Password */}
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">New Password</label>
+                      <label className="block text-base font-bold text-slate-800 mb-2">New Password</label>
                       <div className="relative">
                         <input
                           type={showNewPw ? 'text' : 'password'}
                           value={pwForm.new_password}
                           onChange={(e) => setPwForm(f => ({ ...f, new_password: e.target.value }))}
-                          className="w-full px-4 py-3 pr-12 bg-white border border-slate-200 rounded-xl text-sm
-                                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                          className="w-full px-5 py-3.5 pr-12 bg-white border border-slate-200 rounded-xl text-base font-medium
+                                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm"
                           placeholder="Enter new password (min 8 characters)"
                         />
                         <button
                           type="button"
                           onClick={() => setShowNewPw(!showNewPw)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                         >
-                          {showNewPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                          {showNewPw ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
                       </div>
                       {/* Strength Bar */}
@@ -644,13 +646,13 @@ const Settings = () => {
 
                     {/* Confirm Password */}
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Confirm New Password</label>
+                      <label className="block text-base font-bold text-slate-800 mb-2">Confirm New Password</label>
                       <div className="relative">
                         <input
                           type={showConfirmPw ? 'text' : 'password'}
                           value={pwForm.confirm_password}
                           onChange={(e) => setPwForm(f => ({ ...f, confirm_password: e.target.value }))}
-                          className={`w-full px-4 py-3 pr-12 bg-white border rounded-xl text-sm
+                          className={`w-full px-5 py-3.5 pr-12 bg-white border rounded-xl text-base font-medium shadow-sm
                                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all
                                      ${pwForm.confirm_password && pwForm.confirm_password !== pwForm.new_password
                                        ? 'border-red-300' : 'border-slate-200'}`}
@@ -659,24 +661,22 @@ const Settings = () => {
                         <button
                           type="button"
                           onClick={() => setShowConfirmPw(!showConfirmPw)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                         >
-                          {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                          {showConfirmPw ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
                       </div>
                       {pwForm.confirm_password && pwForm.confirm_password !== pwForm.new_password && (
-                        <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
-                          <AlertTriangle size={12} /> Passwords do not match
+                        <p className="text-sm font-semibold text-red-500 mt-2 flex items-center gap-1.5">
+                          <AlertTriangle size={16} /> Passwords do not match
                         </p>
                       )}
                     </div>
 
-                    <div className="pt-2">
+                    <div className="pt-4">
                       <button
                         type="submit"
                         disabled={pwSaving || !pwForm.current_password || !pwForm.new_password || !pwForm.confirm_password}
-                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-semibold
-                                   hover:bg-blue-700 transition-all shadow-sm hover:shadow-md disabled:opacity-50"
                       >
                         {pwSaving ? <Loader2 size={16} className="animate-spin" /> : <Shield size={16} />}
                         Change Password

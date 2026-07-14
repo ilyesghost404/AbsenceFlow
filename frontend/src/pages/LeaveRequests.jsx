@@ -5,6 +5,7 @@ import Button from '../components/Button';
 import Modal from '../components/Modal';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
+import Pagination from '../components/Pagination';
 import { getAbsences, createAbsence, updateAbsence, deleteAbsence, validateAbsence, rejectAbsence } from '../services/absenceService';
 import { getEmployees } from '../services/employeeService';
 import { useAuth } from '../context/AuthContext';
@@ -31,26 +32,30 @@ const LeaveRequests = () => {
   const [statusFilter, setStatusFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
   const filteredAbsences = absences.filter(a => {
-    const matchesSearch = !searchTerm || 
-      (a.employee_name && a.employee_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (a.reason && a.reason.toLowerCase().includes(searchTerm.toLowerCase()));
-    
     const matchesStatus = statusFilter === 'All' || a.status === statusFilter;
     const matchesType = typeFilter === 'All' || a.type === typeFilter;
     
-    return matchesSearch && matchesStatus && matchesType;
+    return matchesStatus && matchesType;
   });
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const absencesData = await getAbsences();
-      setAbsences(absencesData);
+      const absencesData = await getAbsences({ page, limit, search: searchTerm });
+      setAbsences(absencesData.data);
+      setTotal(absencesData.total);
+      setTotalPages(absencesData.totalPages);
       // Only fetch employees for admin/manager — employees don't need the list
       if (!isEmployee) {
-        const employeesData = await getEmployees();
-        setEmployees(employeesData);
+        const employeesData = await getEmployees({ limit: 1000 });
+        setEmployees(employeesData.data);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -62,7 +67,16 @@ const LeaveRequests = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [page]);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1); // reset to page 1 on search
+      fetchData();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const handleAdd = () => {
     setEditingAbsence(null);
@@ -415,6 +429,14 @@ const LeaveRequests = () => {
                 </div>
               );
             })}
+            
+            <Pagination 
+              page={page} 
+              limit={limit} 
+              total={total} 
+              totalPages={totalPages} 
+              onPageChange={(newPage) => setPage(newPage)} 
+            />
           </div>
         )}
       </div>

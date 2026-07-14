@@ -338,12 +338,10 @@ const getDetailedAbsences = async (req, res) => {
         res.json({
             success: true,
             data: rows,
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                total,
-                pages: Math.ceil(total / parseInt(limit))
-            }
+            page: parseInt(page, 10),
+            limit: parseInt(limit, 10),
+            total,
+            totalPages: Math.ceil(total / parseInt(limit, 10))
         });
     } catch (error) {
         console.error(error);

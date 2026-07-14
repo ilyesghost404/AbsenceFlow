@@ -9,6 +9,7 @@ import Button from '../Button';
 import Modal from '../Modal';
 import LoadingSpinner from '../LoadingSpinner';
 import EmptyState from '../EmptyState';
+import Pagination from '../Pagination';
 import { getAbsences, createAbsence, updateAbsence, deleteAbsence } from '../../services/absenceService';
 
 const TYPE_CONFIG = {
@@ -39,6 +40,12 @@ const EmployeeLeaveRequestsView = () => {
   const [statusFilter, setStatusFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingAbsence, setEditingAbsence] = useState(null);
@@ -53,8 +60,10 @@ const EmployeeLeaveRequestsView = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const absencesData = await getAbsences();
-      setAbsences(absencesData);
+      const absencesData = await getAbsences({ page, limit, search: searchTerm });
+      setAbsences(absencesData.data || []);
+      setTotal(absencesData.total || 0);
+      setTotalPages(absencesData.totalPages || 0);
     } catch (error) {
       console.error('Error fetching absences:', error);
       toast.error('Failed to load your leave requests');
@@ -65,7 +74,16 @@ const EmployeeLeaveRequestsView = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [page]);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1); // reset to page 1 on search
+      fetchData();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const handleAdd = () => {
     setEditingAbsence(null);
@@ -132,12 +150,12 @@ const EmployeeLeaveRequestsView = () => {
     }
   };
 
-  const filteredAbsences = absences.filter(a => {
-    const matchesSearch = !searchTerm || (a.reason && a.reason.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredAbsences = Array.isArray(absences) ? absences.filter(a => {
     const matchesStatus = statusFilter === 'All' || a.status === statusFilter;
     const matchesType = typeFilter === 'All' || a.type === typeFilter;
-    return matchesSearch && matchesStatus && matchesType;
-  });
+    
+    return matchesStatus && matchesType;
+  }) : [];
 
   return (
     <div className="min-h-screen pb-12">
@@ -295,6 +313,16 @@ const EmployeeLeaveRequestsView = () => {
             );
           })}
         </div>
+      )}
+      
+      {!loading && filteredAbsences.length > 0 && (
+        <Pagination 
+          page={page} 
+          limit={limit} 
+          total={total} 
+          totalPages={totalPages} 
+          onPageChange={(newPage) => setPage(newPage)} 
+        />
       )}
 
       {/* Enhanced Create/Edit Modal */}
