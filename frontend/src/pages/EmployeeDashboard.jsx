@@ -1,24 +1,43 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { 
-  Users, 
-  Clock, 
-  CheckCircle2, 
-  CalendarDays, 
-  Calendar, 
-  Activity,
-  CalendarOff
+  Users, Clock, CheckCircle2, CalendarDays, Calendar as CalendarIcon, 
+  Activity, CalendarOff, Hash, Briefcase, Calendar, ChevronRight
 } from 'lucide-react';
 import Card from '../components/Card';
+import StatsCard from '../components/StatsCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { getDashboardStats } from '../services/dashboardService';
 
-// Timezone-safe local date parser
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return null;
   const cleanStr = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
   const [year, month, day] = cleanStr.split('-').map(Number);
   return new Date(year, month - 1, day);
+};
+
+const CircularProgress = ({ value, max, label, colorClass }) => {
+  const radius = 36;
+  const circumference = 2 * Math.PI * radius;
+  const validValue = Math.min(Math.max(0, value), max);
+  const strokeDashoffset = circumference - (validValue / max) * circumference;
+
+  return (
+    <div className="flex flex-col items-center justify-center relative">
+      <svg className="w-24 h-24 transform -rotate-90">
+        <circle cx="48" cy="48" r={radius} stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-100" />
+        <circle 
+          cx="48" cy="48" r={radius} stroke="currentColor" strokeWidth="8" fill="transparent" 
+          strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} 
+          strokeLinecap="round" className={`transition-all duration-1000 ease-out ${colorClass}`} 
+        />
+      </svg>
+      <div className="absolute top-10 flex flex-col items-center justify-center">
+        <span className="text-xl font-bold text-slate-800">{value}</span>
+      </div>
+      <span className="text-xs font-semibold text-slate-500 mt-2">{label}</span>
+    </div>
+  );
 };
 
 const EmployeeDashboard = () => {
@@ -44,7 +63,7 @@ const EmployeeDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="flex items-center justify-center py-20 min-h-screen">
         <LoadingSpinner size="lg" />
       </div>
     );
@@ -53,165 +72,119 @@ const EmployeeDashboard = () => {
   if (!stats) return null;
 
   const info = stats.employeeInfo || {};
+  const maxVacation = 30; // standard vacation days
+  const remainingVacation = stats.remainingVacationDays ?? 30;
+  const usedVacation = maxVacation - remainingVacation;
 
   return (
-    <div className="min-h-screen pb-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-800 mb-2">
-          Welcome back, {info.first_name || 'Employee'}!
-        </h1>
-        <p className="text-slate-500">Your personal absence overview and metrics</p>
+    <div className="min-h-screen pb-12">
+      <div className="mb-8 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">
+            Welcome back, {info.first_name || 'Employee'}! 👋
+          </h1>
+          <p className="text-slate-500 font-medium mt-1">Here is your personal absence overview and metrics</p>
+        </div>
+        <a 
+          href="/leave-requests" 
+          className="inline-flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-md shadow-blue-500/20 hover:shadow-blue-500/40"
+        >
+          Request Absence
+        </a>
       </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-        <Card hover>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium">Remaining Vacation</p>
-              <p className="text-3xl font-bold mt-2 text-teal-600">{stats.remainingVacationDays ?? 30}</p>
-            </div>
-            <div className="p-3.5 rounded-xl bg-teal-50">
-              <CalendarDays className="text-teal-600" size={28} />
-            </div>
-          </div>
-        </Card>
-
-        <Card hover>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium">Pending Requests</p>
-              <p className="text-3xl font-bold mt-2 text-amber-500">{stats.pendingRequests || 0}</p>
-            </div>
-            <div className="p-3.5 rounded-xl bg-amber-50">
-              <Clock className="text-amber-500" size={28} />
-            </div>
-          </div>
-        </Card>
-
-        <Card hover>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium">Approved Absences</p>
-              <p className="text-3xl font-bold mt-2 text-green-600">{stats.approvedRequests || 0}</p>
-            </div>
-            <div className="p-3.5 rounded-xl bg-green-50">
-              <CheckCircle2 className="text-green-600" size={28} />
-            </div>
-          </div>
-        </Card>
-
-        <Card hover>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium">Total Absence Count</p>
-              <p className="text-3xl font-bold mt-2 text-blue-600">{stats.totalAbsences || 0}</p>
-            </div>
-            <div className="p-3.5 rounded-xl bg-blue-50">
-              <CalendarOff className="text-blue-600" size={28} />
-            </div>
-          </div>
-        </Card>
-
-        <Card hover>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium">Next Holiday</p>
-              <p className="text-lg font-bold mt-2 text-slate-800 truncate max-w-[150px]" title={stats.nextHoliday?.name || 'No upcoming holiday'}>
-                {stats.nextHoliday?.name || 'None'}
-              </p>
-              <p className="text-xs text-slate-400 mt-1">
-                {stats.nextHoliday ? parseLocalDate(stats.nextHoliday.holiday_date)?.toLocaleDateString() : '—'}
-              </p>
-            </div>
-            <div className="p-3.5 rounded-xl bg-purple-50">
-              <Calendar className="text-purple-600" size={28} />
-            </div>
-          </div>
-        </Card>
+        <StatsCard title="Remaining Vacation" value={remainingVacation} icon={CalendarDays} colorClass="text-blue-600" bgClass="bg-blue-50" borderClass="border-t-blue-500" />
+        <StatsCard title="Pending Requests" value={stats.pendingRequests || 0} icon={Clock} colorClass="text-amber-500" bgClass="bg-amber-50" borderClass="border-t-amber-500" />
+        <StatsCard title="Approved Absences" value={stats.approvedRequests || 0} icon={CheckCircle2} colorClass="text-emerald-600" bgClass="bg-emerald-50" borderClass="border-t-emerald-500" />
+        <StatsCard title="Total Absences" value={stats.totalAbsences || 0} icon={CalendarOff} colorClass="text-violet-600" bgClass="bg-violet-50" borderClass="border-t-violet-500" />
+        <StatsCard 
+          title="Next Holiday" 
+          value={stats.nextHoliday?.name || 'None'} 
+          subtitle={stats.nextHoliday ? parseLocalDate(stats.nextHoliday.holiday_date)?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+          icon={CalendarIcon} 
+          colorClass="text-pink-600" 
+          bgClass="bg-pink-50" 
+          borderClass="border-t-pink-500"
+        />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Employee Info Card */}
-        <Card className="lg:col-span-1 p-6">
-          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2 pb-3 border-b border-slate-100">
-            <Users className="text-blue-600" size={20} />
-            Profile Details
-          </h3>
-          <div className="space-y-4">
-            <div>
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Matricule</span>
-              <span className="text-slate-700 font-medium text-sm">{info.matricule || '—'}</span>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Left Column: Balance */}
+        <div className="lg:col-span-4 space-y-8">
+          {/* Leave Balance Card */}
+          <Card className="p-6 shadow-sm border-slate-200">
+            <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2 pb-3 border-b border-slate-100">
+              <CalendarDays className="text-emerald-600" size={20} />
+              Vacation Balance
+            </h3>
+            <div className="flex justify-around items-center pt-2">
+              <CircularProgress value={usedVacation} max={maxVacation} label="Used Days" colorClass="text-amber-500" />
+              <CircularProgress value={remainingVacation} max={maxVacation} label="Remaining" colorClass="text-emerald-500" />
             </div>
-            <div>
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Department</span>
-              <span className="text-slate-700 font-medium text-sm">{info.department || '—'}</span>
-            </div>
-            <div>
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Position</span>
-              <span className="text-slate-700 font-medium text-sm">{info.position || '—'}</span>
-            </div>
-            <div>
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Hire Date</span>
-              <span className="text-slate-700 font-medium text-sm">
-                {info.hire_date ? parseLocalDate(info.hire_date)?.toLocaleDateString() : '—'}
-              </span>
-            </div>
-          </div>
-          
-          <div className="mt-8 pt-6 border-t border-slate-100">
-            <a 
-              href="/absences" 
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 transition-all text-sm shadow-md"
-            >
-              Request New Absence
-            </a>
-          </div>
-        </Card>
+          </Card>
+        </div>
 
-        {/* Recent Absence History */}
-        <Card className="lg:col-span-2 p-6">
-          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2 pb-3 border-b border-slate-100">
-            <Activity className="text-blue-600" size={20} />
-            Recent Absences
-          </h3>
-          {stats.recentAbsences && stats.recentAbsences.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-100">
-                    <th className="pb-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Type</th>
-                    <th className="pb-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Dates</th>
-                    <th className="pb-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.recentAbsences.map((ab) => (
-                    <tr key={ab.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
-                      <td className="py-3.5 text-sm text-slate-700 font-medium">{ab.type}</td>
-                      <td className="py-3.5 text-sm text-slate-500">
-                        {parseLocalDate(ab.start_date)?.toLocaleDateString()} to {parseLocalDate(ab.end_date)?.toLocaleDateString()}
-                      </td>
-                      <td className="py-3.5">
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                          ab.status === 'Validated' ? 'bg-green-100 text-green-700' :
-                          ab.status === 'Rejected' ? 'bg-red-100 text-red-700' :
-                          'bg-yellow-100 text-yellow-700'
-                        }`}>
-                          {ab.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* Right Column: Timeline */}
+        <div className="lg:col-span-8">
+          <Card className="p-6 h-full shadow-sm border-slate-200">
+            <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Activity className="text-blue-600" size={20} />
+                Recent Activity
+              </h3>
+              <a href="/leave-requests" className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors">
+                View All <ChevronRight size={16} />
+              </a>
             </div>
-          ) : (
-            <div className="text-center py-12 text-slate-400 italic text-sm">
-              No absence requests filed yet.
-            </div>
-          )}
-        </Card>
+
+            {stats.recentAbsences && stats.recentAbsences.length > 0 ? (
+              <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
+                {stats.recentAbsences.map((ab, idx) => {
+                  const statusColors = {
+                    Pending: 'bg-amber-100 text-amber-600 border-amber-200',
+                    Validated: 'bg-emerald-100 text-emerald-600 border-emerald-200',
+                    Rejected: 'bg-red-100 text-red-600 border-red-200'
+                  };
+                  const statusColor = statusColors[ab.status] || 'bg-slate-100 text-slate-600 border-slate-200';
+                  
+                  return (
+                    <div key={ab.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                      <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-blue-100 text-blue-600 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
+                        <CalendarDays size={16} />
+                      </div>
+                      <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-2xl border border-slate-100 bg-white shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusColor}`}>
+                            {ab.status}
+                          </span>
+                          <span className="text-xs font-semibold text-slate-400">
+                            {new Date(ab.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
+                        <h4 className="font-bold text-slate-800 text-sm mb-1">{ab.type}</h4>
+                        <p className="text-xs text-slate-500 font-medium">
+                          {parseLocalDate(ab.start_date)?.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} 
+                          {' '}-{' '} 
+                          {parseLocalDate(ab.end_date)?.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 border border-slate-100">
+                  <Activity className="text-slate-300" size={32} />
+                </div>
+                <h4 className="text-lg font-bold text-slate-700 mb-1">No Recent Activity</h4>
+                <p className="text-slate-500 text-sm max-w-sm">You haven't submitted any absence requests yet. When you do, they will appear here.</p>
+              </div>
+            )}
+          </Card>
+        </div>
       </div>
     </div>
   );

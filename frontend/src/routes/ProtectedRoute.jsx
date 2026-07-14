@@ -20,9 +20,6 @@ const ProtectedRoute = ({ allowedRoles }) => {
 
   if (allowedRoles && !allowedRoles.includes(user?.role)) {
     // Redirect unauthorized roles back to their respective dashboards
-    if (user?.role === 'manager') {
-      return <Navigate to="/employees" replace />;
-    }
     return <Navigate to="/dashboard" replace />;
   }
 

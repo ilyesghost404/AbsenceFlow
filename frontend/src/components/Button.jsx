@@ -1,4 +1,4 @@
-const Button = ({ children, onClick, variant = 'primary', className = '', disabled = false, size = 'md', icon: Icon, loading = false }) => {
+const Button = ({ children, onClick, variant = 'primary', className = '', disabled = false, size = 'md', icon: Icon, loading = false, type = 'button' }) => {
   const variants = {
     primary: 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/35',
     secondary: 'bg-white border-2 border-slate-200 hover:border-blue-500 hover:text-blue-600 text-slate-700 shadow-sm hover:shadow-md',
@@ -15,6 +15,7 @@ const Button = ({ children, onClick, variant = 'primary', className = '', disabl
 
   return (
     <button
+      type={type}
       onClick={onClick}
       disabled={disabled}
       className={`

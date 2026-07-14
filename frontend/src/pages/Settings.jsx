@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import Card from '../components/Card';
+import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import {
   User, Bell, Palette, Shield, Save, Loader2,
@@ -266,7 +268,7 @@ const Settings = () => {
 
         {/* ─── Sidebar ────────────────────────────────────────────────────── */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-3 sticky top-6">
+          <Card className="p-3 sticky top-6">
             <div className="space-y-1">
               {sections.map((section) => {
                 const Icon = section.icon;
@@ -296,7 +298,7 @@ const Settings = () => {
                 );
               })}
             </div>
-          </div>
+          </Card>
         </div>
 
         {/* ─── Content ────────────────────────────────────────────────────── */}
@@ -304,7 +306,7 @@ const Settings = () => {
 
           {/* ═══════════════════════════ PROFILE ═══════════════════════════ */}
           {activeSection === 'profile' && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <Card className="overflow-hidden" noPadding>
               {/* Header */}
               <div className="px-8 py-6 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
                 <div className="flex items-center gap-4">
@@ -385,12 +387,12 @@ const Settings = () => {
                   </form>
                 )}
               </div>
-            </div>
+            </Card>
           )}
 
           {/* ═══════════════════════ NOTIFICATIONS ═══════════════════════ */}
           {activeSection === 'notifications' && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <Card className="overflow-hidden" noPadding>
               <div className="px-8 py-6 border-b border-slate-100">
                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                   <Bell size={22} className="text-blue-600" />
@@ -455,14 +457,14 @@ const Settings = () => {
                   </div>
                 )}
               </div>
-            </div>
+            </Card>
           )}
 
           {/* ═══════════════════════ APPEARANCE ═════════════════════════ */}
           {activeSection === 'appearance' && (
             <div className="space-y-6">
               {/* Theme */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <Card className="overflow-hidden" noPadding>
                 <div className="px-8 py-6 border-b border-slate-100">
                   <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                     <Palette size={22} className="text-blue-600" />
@@ -511,10 +513,10 @@ const Settings = () => {
                     </div>
                   )}
                 </div>
-              </div>
+              </Card>
 
               {/* Layout Options */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <Card className="overflow-hidden" noPadding>
                 <div className="px-8 py-6 border-b border-slate-100">
                   <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                     <LayoutGrid size={20} className="text-blue-600" />
@@ -557,7 +559,7 @@ const Settings = () => {
                     </>
                   )}
                 </div>
-              </div>
+              </Card>
             </div>
           )}
 
@@ -566,7 +568,7 @@ const Settings = () => {
             <div className="space-y-6">
 
               {/* Change Password */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <Card className="overflow-hidden" noPadding>
                 <div className="px-8 py-6 border-b border-slate-100">
                   <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                     <Lock size={22} className="text-blue-600" />
@@ -682,10 +684,10 @@ const Settings = () => {
                     </div>
                   </form>
                 </div>
-              </div>
+              </Card>
 
               {/* Session Info */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <Card className="overflow-hidden" noPadding>
                 <div className="px-8 py-6 border-b border-slate-100">
                   <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                     <Globe size={20} className="text-blue-600" />
@@ -760,7 +762,7 @@ const Settings = () => {
                     </div>
                   )}
                 </div>
-              </div>
+              </Card>
             </div>
           )}
 

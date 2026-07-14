@@ -1,12 +1,21 @@
 const db = require("../config/database");
 
+/**
+ * Normalize a date value (string or Date) to a 'YYYY-MM-DD' string.
+ */
+function toDateString(val) {
+    if (typeof val === 'string') return val.split('T')[0];
+    if (val instanceof Date) return val.toISOString().split('T')[0];
+    return String(val);
+}
+
 function countWorkingDays(startDate, endDate, holidays) {
     let workingDays = 0;
     const start = new Date(startDate);
     const end = new Date(endDate);
     
     // Convert holidays to set of strings for quick lookups
-    const holidaySet = new Set(holidays.map(h => h.toISOString().split('T')[0]));
+    const holidaySet = new Set(holidays.map(h => toDateString(h)));
     
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         const dayOfWeek = d.getDay();
@@ -44,7 +53,7 @@ async function getValidatedAbsenceDays(employeeId, startDate, endDate) {
     
     let absenceDays = 0;
     const holidays = await getHolidays(startDate, endDate);
-    const holidaySet = new Set(holidays.map(h => h.toISOString().split('T')[0]));
+    const holidaySet = new Set(holidays.map(h => toDateString(h)));
     
     for (const absence of result.rows) {
         const absStart = new Date(Math.max(new Date(absence.start_date), new Date(startDate)));

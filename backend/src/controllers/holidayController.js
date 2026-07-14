@@ -41,6 +41,9 @@ const createHoliday = async (req, res) => {
     res.status(201).json({ success: true, data: holiday });
   } catch (error) {
     console.error("Error creating holiday:", error);
+    if (error.code === '23505') {
+      return res.status(400).json({ success: false, message: "A holiday already exists on this date" });
+    }
     res.status(500).json({ success: false, message: "Failed to create holiday" });
   }
 };
@@ -66,6 +69,9 @@ const updateHoliday = async (req, res) => {
     res.json({ success: true, data: holiday });
   } catch (error) {
     console.error("Error updating holiday:", error);
+    if (error.code === '23505') {
+      return res.status(400).json({ success: false, message: "A holiday already exists on this date" });
+    }
     res.status(500).json({ success: false, message: "Failed to update holiday" });
   }
 };

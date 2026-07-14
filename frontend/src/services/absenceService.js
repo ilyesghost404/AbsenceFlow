@@ -12,12 +12,12 @@ export const getAbsencesByDate = async (date) => {
 
 export const createAbsence = async (absence) => {
   const response = await api.post('/absences', absence);
-  return response.data.data;
+  return response.data;
 };
 
 export const updateAbsence = async (id, absence) => {
   const response = await api.put(`/absences/${id}`, absence);
-  return response.data.data;
+  return response.data;
 };
 
 export const deleteAbsence = async (id) => {

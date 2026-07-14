@@ -17,6 +17,8 @@ import {
   Filter
 } from 'lucide-react';
 import Card from '../components/Card';
+import StatsCard from '../components/StatsCard';
+import Table from '../components/Table';
 import Button from '../components/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Modal from '../components/Modal';
@@ -236,78 +238,28 @@ const Reports = () => {
       ) : (
         <>
           {stats && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-8">
-              <Card hover className="p-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-slate-500 text-sm font-medium mb-1">Total Employees</p>
-                    <p className="text-3xl font-bold text-slate-800">{stats.totalEmployees}</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-blue-50">
-                    <Users className="text-blue-600" size={28} />
-                  </div>
-                </div>
-              </Card>
-
-              <Card hover className="p-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-slate-500 text-sm font-medium mb-1">Total Absences</p>
-                    <p className="text-3xl font-bold text-blue-600">{stats.totalAbsences}</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-blue-50">
-                    <CalendarOff className="text-blue-600" size={28} />
-                  </div>
-                </div>
-              </Card>
-
-              <Card hover className="p-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-slate-500 text-sm font-medium mb-1">Absence Rate</p>
-                    <p className="text-3xl font-bold text-purple-600">{stats.absenceRate}%</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-purple-50">
-                    <TrendingUp className="text-purple-600" size={28} />
-                  </div>
-                </div>
-              </Card>
-
-              <Card hover className="p-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-slate-500 text-sm font-medium mb-1">Pending</p>
-                    <p className="text-3xl font-bold text-amber-600">{stats.pendingRequests}</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-amber-50">
-                    <Clock className="text-amber-600" size={28} />
-                  </div>
-                </div>
-              </Card>
-
-              <Card hover className="p-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-slate-500 text-sm font-medium mb-1">Approved</p>
-                    <p className="text-3xl font-bold text-green-600">{stats.approvedRequests}</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-green-50">
-                    <CheckCircle2 className="text-green-600" size={28} />
-                  </div>
-                </div>
-              </Card>
-
-              <Card hover className="p-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-slate-500 text-sm font-medium mb-1">Holidays</p>
-                    <p className="text-3xl font-bold text-red-600">{stats.holidaysThisMonth}</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-red-50">
-                    <Calendar className="text-red-600" size={28} />
-                  </div>
-                </div>
-              </Card>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
+              <StatsCard 
+                title="Total Absences" 
+                value={stats.totalAbsences} 
+                icon={CalendarOff} 
+                colorClass="text-blue-600" 
+                bgClass="bg-blue-50" 
+              />
+              <StatsCard 
+                title="Absence Rate" 
+                value={`${stats.absenceRate}%`} 
+                icon={TrendingUp} 
+                colorClass="text-purple-600" 
+                bgClass="bg-purple-50" 
+              />
+              <StatsCard 
+                title="Pending Requests" 
+                value={stats.pendingRequests} 
+                icon={Clock} 
+                colorClass="text-amber-600" 
+                bgClass="bg-amber-50" 
+              />
             </div>
           )}
 
@@ -540,61 +492,62 @@ const Reports = () => {
             </div>
             <div className="overflow-x-auto">
               {detailedData.length > 0 ? (
-                <table className="w-full">
-                  <thead className="bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                        Employee
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                        Department
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                        Type
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                        Start Date
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                        End Date
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                        Duration
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {detailedData.map((absence) => (
-                      <tr key={absence.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4">
+                <Table
+                  data={detailedData}
+                  columns={[
+                    {
+                      header: 'Employee',
+                      key: 'employee',
+                      render: (absence) => (
+                        <>
                           <div className="font-semibold text-slate-800">{absence.employee_name}</div>
                           <div className="text-sm text-slate-500">{absence.matricule}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium">
-                            {absence.department}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-slate-700">{absence.type}</td>
-                        <td className="px-6 py-4 text-slate-700">
-                          {parseLocalDate(absence.start_date)?.toLocaleDateString() ?? '—'}
-                        </td>
-                        <td className="px-6 py-4 text-slate-700">
-                          {parseLocalDate(absence.end_date)?.toLocaleDateString() ?? '—'}
-                        </td>
-                        <td className="px-6 py-4 font-semibold text-slate-700">{absence.duration}d</td>
-                        <td className="px-6 py-4">
-                          <span className={`px-3 py-1 rounded-xl text-xs font-semibold ${getStatusBadgeClass(absence.status)}`}>
-                            {absence.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </>
+                      ),
+                    },
+                    {
+                      header: 'Department',
+                      key: 'department',
+                      render: (absence) => (
+                        <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium">
+                          {absence.department}
+                        </span>
+                      ),
+                    },
+                    {
+                      header: 'Type',
+                      key: 'type',
+                      cellClassName: 'text-slate-700',
+                    },
+                    {
+                      header: 'Start Date',
+                      key: 'start_date',
+                      cellClassName: 'text-slate-700',
+                      render: (absence) => parseLocalDate(absence.start_date)?.toLocaleDateString() ?? '—',
+                    },
+                    {
+                      header: 'End Date',
+                      key: 'end_date',
+                      cellClassName: 'text-slate-700',
+                      render: (absence) => parseLocalDate(absence.end_date)?.toLocaleDateString() ?? '—',
+                    },
+                    {
+                      header: 'Duration',
+                      key: 'duration',
+                      cellClassName: 'font-semibold text-slate-700',
+                      render: (absence) => `${absence.duration}d`,
+                    },
+                    {
+                      header: 'Status',
+                      key: 'status',
+                      render: (absence) => (
+                        <span className={`px-3 py-1 rounded-xl text-xs font-semibold ${getStatusBadgeClass(absence.status)}`}>
+                          {absence.status}
+                        </span>
+                      ),
+                    },
+                  ]}
+                />
               ) : (
                 <div className="py-20 text-center">
                   <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">

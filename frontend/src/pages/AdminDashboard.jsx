@@ -15,6 +15,8 @@ import {
   PieChart as RechartsPieChart, Pie, Legend
 } from 'recharts';
 import Card from '../components/Card';
+import StatsCard from '../components/StatsCard';
+import StatusBadge from '../components/StatusBadge';
 import {
   getAdminDashboardStats,
   searchUsers,
@@ -72,7 +74,7 @@ const getRoleBadge = (role) => {
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
 const SkeletonCard = () => (
-  <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 animate-pulse">
+  <Card className="animate-pulse">
     <div className="flex justify-between items-start">
       <div className="space-y-3">
         <div className="h-3 bg-slate-200 rounded w-24" />
@@ -80,26 +82,10 @@ const SkeletonCard = () => (
       </div>
       <div className="w-12 h-12 bg-slate-200 rounded-xl" />
     </div>
-  </div>
+  </Card>
 );
 
-const StatCard = ({ label, value, icon: Icon, colorClass, bgClass, subtitle }) => (
-  <div className={`
-    bg-white rounded-2xl shadow-sm border border-slate-100 p-6
-    transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-default group
-  `}>
-    <div className="flex items-start justify-between">
-      <div>
-        <p className="text-slate-500 text-sm font-medium">{label}</p>
-        <p className={`text-3xl font-bold mt-2 ${colorClass}`}>{value ?? 0}</p>
-        {subtitle && <p className="text-xs text-slate-400 mt-1">{subtitle}</p>}
-      </div>
-      <div className={`p-3.5 rounded-xl ${bgClass} transition-transform duration-300 group-hover:scale-110`}>
-        <Icon className={colorClass} size={26} />
-      </div>
-    </div>
-  </div>
-);
+
 
 const HealthBadge = ({ status, latency }) => {
   const isHealthy = status === 'healthy';
@@ -257,10 +243,10 @@ const AdminDashboard = ({ onAction }) => {
         {/* Chart skeletons */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[1, 2].map(i => (
-            <div key={i} className="bg-white rounded-2xl border border-slate-100 p-6 h-80 animate-pulse">
+            <Card key={i} className="h-80 animate-pulse">
               <div className="h-4 bg-slate-200 rounded w-40 mb-6" />
               <div className="h-56 bg-slate-100 rounded-xl" />
-            </div>
+            </Card>
           ))}
         </div>
       </div>
@@ -331,8 +317,7 @@ const AdminDashboard = ({ onAction }) => {
 
         {/* Search Results Dropdown */}
         {searchOpen && (
-          <div className="absolute top-full left-0 right-0 max-w-2xl mt-2 bg-white rounded-2xl
-                          shadow-2xl border border-slate-100 z-50 overflow-hidden max-h-96 overflow-y-auto">
+          <div className="absolute top-full left-0 right-0 max-w-2xl mt-2 bg-white rounded-3xl shadow-xl border border-slate-200 p-2 z-50 overflow-hidden max-h-96 overflow-y-auto">
             {searchResults.length === 0 && !searchLoading ? (
               <div className="px-6 py-8 text-center text-slate-400 text-sm">
                 No users found matching "{searchQuery}"
@@ -364,11 +349,8 @@ const AdminDashboard = ({ onAction }) => {
                       <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${getRoleBadge(u.role)}`}>
                         {u.role}
                       </span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        u.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
-                      }`}>
-                        {u.is_active ? 'Active' : 'Disabled'}
-                      </span>
+                      <StatusBadge status={u.role} />
+                      <StatusBadge status={u.is_active ? 'Active' : 'Disabled'} />
                     </div>
                   </li>
                 ))}
@@ -379,7 +361,7 @@ const AdminDashboard = ({ onAction }) => {
       </div>
 
       {/* ── Quick Access Action Bar ──────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 px-2 py-1">
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 px-2 py-1">
         <div className="flex items-center w-full">
           {[
             {
@@ -490,25 +472,25 @@ const AdminDashboard = ({ onAction }) => {
       </div>
 
       {/* ── Statistics Cards Row 1 ────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <StatCard label="Total Users"       value={stats?.totalUsers}       icon={Users}        colorClass="text-blue-600"    bgClass="bg-blue-50"    />
-        <StatCard label="Active Accounts"   value={stats?.activeAccounts}   icon={UserCheck}    colorClass="text-emerald-600" bgClass="bg-emerald-50" />
-        <StatCard label="Disabled Accounts" value={stats?.disabledAccounts} icon={UserX}        colorClass="text-red-500"     bgClass="bg-red-50"     />
-        <StatCard label="Administrators"    value={stats?.admins}           icon={Shield}       colorClass="text-violet-600"  bgClass="bg-violet-50"  />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatsCard title="Total Users"       value={stats?.totalUsers}       icon={Users}        colorClass="text-blue-600"    bgClass="bg-blue-50"    />
+        <StatsCard title="Active Accounts"   value={stats?.activeAccounts}   icon={UserCheck}    colorClass="text-emerald-600" bgClass="bg-emerald-50" />
+        <StatsCard title="Disabled Accounts" value={stats?.disabledAccounts} icon={UserX}        colorClass="text-rose-600"    bgClass="bg-rose-50"     />
+        <StatsCard title="Administrators"    value={stats?.admins}           icon={Shield}       colorClass="text-violet-600"  bgClass="bg-violet-50"  />
       </div>
 
       {/* ── Statistics Cards Row 2 ────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <StatCard label="Managers"          value={stats?.managers}         icon={Briefcase}    colorClass="text-blue-600"    bgClass="bg-blue-50"    />
-        <StatCard label="Employees"         value={stats?.employees}        icon={UserCircle}   colorClass="text-sky-600"     bgClass="bg-sky-50"     />
-        <StatCard label="New Users This Month" value={stats?.newThisMonth}  icon={UserPlus}     colorClass="text-teal-600"    bgClass="bg-teal-50"    subtitle={`+${stats?.newThisWeek ?? 0} this week`} />
-        <StatCard label="Logged In Today"   value={stats?.loggedInToday}    icon={LogIn}        colorClass="text-indigo-600"  bgClass="bg-indigo-50"  />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatsCard title="Managers"          value={stats?.managers}         icon={Briefcase}    colorClass="text-blue-600"    bgClass="bg-blue-50"    />
+        <StatsCard title="Employees"         value={stats?.employees}        icon={UserCircle}   colorClass="text-sky-600"     bgClass="bg-sky-50"     />
+        <StatsCard title="New Users This Month" value={stats?.newThisMonth}  icon={UserPlus}     colorClass="text-teal-600"    bgClass="bg-teal-50"    trend={{value: `+${stats?.newThisWeek ?? 0}`, label: 'this week', positive: true}} />
+        <StatsCard title="Logged In Today"   value={stats?.loggedInToday}    icon={LogIn}        colorClass="text-indigo-600"  bgClass="bg-indigo-50"  />
       </div>
 
       {/* ── Charts Row 1: User Growth + Role Distribution ─────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* User Growth Chart */}
-        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+        <Card className="lg:col-span-2">
           <h3 className="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
             <TrendingUp className="text-blue-600" size={20} />
             User Growth
@@ -538,10 +520,10 @@ const AdminDashboard = ({ onAction }) => {
               </ResponsiveContainer>
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Role Distribution Donut */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+        <Card>
           <h3 className="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
             <Shield className="text-violet-600" size={20} />
             Role Distribution
@@ -570,13 +552,13 @@ const AdminDashboard = ({ onAction }) => {
               </ResponsiveContainer>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* ── Charts Row 2: Department + Account Status Overview ─────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Department Distribution */}
-        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+        <Card className="lg:col-span-2">
           <h3 className="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
             <Briefcase className="text-blue-600" size={20} />
             Department Distribution
@@ -601,10 +583,10 @@ const AdminDashboard = ({ onAction }) => {
               </ResponsiveContainer>
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Account Status Overview */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4">
+        <Card className="space-y-4">
           <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
             <Activity className="text-teal-600" size={20} />
             Account Overview
@@ -622,13 +604,13 @@ const AdminDashboard = ({ onAction }) => {
               <span className={`text-lg font-bold ${color}`}>{value ?? 0}</span>
             </div>
           ))}
-        </div>
+        </Card>
       </div>
 
       {/* ── Activity + Recent Users ───────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Recent Account Activity */}
-        <div id="activity-logs-section" className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <Card id="activity-logs-section" className="lg:col-span-2 overflow-hidden" noPadding>
           <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
             <h3 className="font-bold text-slate-800 flex items-center gap-2">
               <Activity className="text-blue-600" size={18} />
@@ -675,10 +657,10 @@ const AdminDashboard = ({ onAction }) => {
               })
             )}
           </div>
-        </div>
+        </Card>
 
         {/* Recent Users Table */}
-        <div className="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <Card className="lg:col-span-3 overflow-hidden" noPadding>
           <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
             <h3 className="font-bold text-slate-800 flex items-center gap-2">
               <Users className="text-blue-600" size={18} />
@@ -737,9 +719,7 @@ const AdminDashboard = ({ onAction }) => {
                       </td>
                       {/* Role */}
                       <td className="px-4 py-3.5">
-                        <span className={`text-xs px-2.5 py-1 rounded-full border font-semibold ${getRoleBadge(u.role)}`}>
-                          {u.role}
-                        </span>
+                        <StatusBadge status={u.role} type="outline" />
                       </td>
                       {/* Department */}
                       <td className="px-4 py-3.5 hidden md:table-cell">
@@ -747,12 +727,7 @@ const AdminDashboard = ({ onAction }) => {
                       </td>
                       {/* Status */}
                       <td className="px-4 py-3.5">
-                        <div className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-semibold ${
-                          u.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'
-                        }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${u.is_active ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                          {u.is_active ? 'Active' : 'Disabled'}
-                        </div>
+                      <StatusBadge status={u.is_active ? 'Active' : 'Disabled'} type="dot" />
                       </td>
                       {/* Joined */}
                       <td className="px-4 py-3.5 hidden lg:table-cell">
@@ -768,11 +743,11 @@ const AdminDashboard = ({ onAction }) => {
               </table>
             )}
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* ── System Health ─────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+      <Card>
         <h3 className="font-bold text-slate-800 mb-5 flex items-center gap-2">
           <Server className="text-blue-600" size={20} />
           System Health
@@ -848,7 +823,7 @@ const AdminDashboard = ({ onAction }) => {
             );
           })}
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

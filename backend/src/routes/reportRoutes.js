@@ -13,7 +13,7 @@ const {
 const { requireAuth, authorizeRoles } = require("../middleware/authMiddleware");
 
 // All report routes require authentication and are restricted to admin or manager roles
-router.use(requireAuth, authorizeRoles("manager"));
+router.use(requireAuth, authorizeRoles("admin", "manager"));
 
 router.get("/statistics", getReportStats);
 router.get("/monthly-evolution", getMonthlyAbsenceEvolution);

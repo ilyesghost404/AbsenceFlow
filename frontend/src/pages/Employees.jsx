@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
-import { Plus, Edit2, Trash2, Users, UserCheck, Building, TrendingUp, Search, Filter } from 'lucide-react';
-import Card from '../components/Card';
+import { Plus, Edit2, Trash2, Users, Search, Filter, X } from 'lucide-react';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
-import LoadingSpinner from '../components/LoadingSpinner';
+import LoadingSpinner, { SkeletonTable } from '../components/LoadingSpinner';
+import EmptyState from '../components/EmptyState';
 import { getEmployees, createEmployee, updateEmployee, deleteEmployee } from '../services/employeeService';
 
 // Timezone-safe local date parser
@@ -13,6 +13,34 @@ const parseLocalDate = (dateStr) => {
   const cleanStr = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
   const [year, month, day] = cleanStr.split('-').map(Number);
   return new Date(year, month - 1, day);
+};
+
+// Department color map
+const DEPT_COLORS = {
+  'Engineering': 'bg-blue-50 text-blue-700 border-blue-200',
+  'Marketing': 'bg-pink-50 text-pink-700 border-pink-200',
+  'Sales': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  'HR': 'bg-violet-50 text-violet-700 border-violet-200',
+  'Finance': 'bg-amber-50 text-amber-700 border-amber-200',
+  'Design': 'bg-cyan-50 text-cyan-700 border-cyan-200',
+  'Operations': 'bg-orange-50 text-orange-700 border-orange-200',
+  'default': 'bg-slate-50 text-slate-700 border-slate-200',
+};
+
+const getDeptColor = (dept) => DEPT_COLORS[dept] || DEPT_COLORS.default;
+
+const AVATAR_GRADIENTS = [
+  'from-blue-500 to-indigo-600',
+  'from-violet-500 to-purple-600',
+  'from-emerald-500 to-teal-600',
+  'from-rose-500 to-pink-600',
+  'from-amber-500 to-orange-600',
+  'from-cyan-500 to-blue-600',
+];
+
+const getAvatarGradient = (name) => {
+  const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return AVATAR_GRADIENTS[hash % AVATAR_GRADIENTS.length];
 };
 
 const Employees = () => {
@@ -103,20 +131,6 @@ const Employees = () => {
     }
   };
 
-  // Calculate statistics
-  const stats = useMemo(() => {
-    const total = employees.length;
-    const departments = [...new Set(employees.map(e => e.department).filter(Boolean))].length;
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    const newThisMonth = employees.filter(e => {
-      const hireDate = parseLocalDate(e.hire_date);
-      return hireDate && hireDate.getMonth() === currentMonth && hireDate.getFullYear() === currentYear;
-    }).length;
-    
-    return { total, active: total, departments, newThisMonth };
-  }, [employees]);
-
   // Filter employees
   const filteredEmployees = useMemo(() => {
     return employees.filter(emp => {
@@ -137,18 +151,22 @@ const Employees = () => {
     return [...new Set(employees.map(e => e.department).filter(Boolean))];
   }, [employees]);
 
-  // Function to get initials from name
   const getInitials = (firstName, lastName) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
+  const hasActiveFilters = searchTerm || departmentFilter;
+
   return (
-    <div className="min-h-screen">
-      <div className="mb-8">
+    <div className="min-h-screen pb-8">
+      {/* Header */}
+      <div className="mb-6 animate-fade-in">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-800 mb-2">Employees</h1>
-            <p className="text-slate-500">Manage and track your organization's employees</p>
+            <h1 className="text-3xl font-bold text-slate-800 mb-1">Employees</h1>
+            <p className="text-slate-500 text-sm">
+              {employees.length} {employees.length === 1 ? 'employee' : 'employees'} in your organization
+            </p>
           </div>
           <Button icon={Plus} onClick={handleAdd}>
             Add Employee
@@ -156,77 +174,34 @@ const Employees = () => {
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-        <Card hover className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium mb-1">Total Employees</p>
-              <p className="text-3xl font-bold text-slate-800">{stats.total}</p>
-            </div>
-            <div className="p-4 rounded-xl bg-blue-50">
-              <Users className="text-blue-600" size={28} />
-            </div>
-          </div>
-        </Card>
-
-        <Card hover className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium mb-1">Active Employees</p>
-              <p className="text-3xl font-bold text-green-600">{stats.active}</p>
-            </div>
-            <div className="p-4 rounded-xl bg-green-50">
-              <UserCheck className="text-green-600" size={28} />
-            </div>
-          </div>
-        </Card>
-
-        <Card hover className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium mb-1">Departments</p>
-              <p className="text-3xl font-bold text-purple-600">{stats.departments}</p>
-            </div>
-            <div className="p-4 rounded-xl bg-purple-50">
-              <Building className="text-purple-600" size={28} />
-            </div>
-          </div>
-        </Card>
-
-        <Card hover className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium mb-1">New This Month</p>
-              <p className="text-3xl font-bold text-amber-600">{stats.newThisMonth}</p>
-            </div>
-            <div className="p-4 rounded-xl bg-amber-50">
-              <TrendingUp className="text-amber-600" size={28} />
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Search and Filters */}
-      <Card className="p-6 mb-6">
-        <div className="flex flex-wrap gap-4 items-center">
+      {/* Search & Filters Toolbar */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-6 animate-fade-in stagger-1">
+        <div className="flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 min-w-[250px]">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
               type="text"
-              placeholder="Search employees by name, matricule, or email..."
+              placeholder="Search by name, matricule, or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all"
             />
+            {searchTerm && (
+              <button 
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            )}
           </div>
           
-          <div className="flex items-center gap-2 bg-white rounded-2xl border border-slate-200 px-4">
-            <Filter className="text-slate-400" size={20} />
+          <div className="flex items-center gap-2 bg-slate-50 rounded-xl border border-slate-200 px-3">
+            <Filter className="text-slate-400" size={16} />
             <select
               value={departmentFilter}
               onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="py-3 bg-transparent focus:outline-none"
+              className="py-2.5 bg-transparent focus:outline-none text-sm font-medium text-slate-700 cursor-pointer"
             >
               <option value="">All Departments</option>
               {departments.map((dept) => (
@@ -234,113 +209,120 @@ const Employees = () => {
               ))}
             </select>
           </div>
-        </div>
-      </Card>
 
-      {/* Employees Table */}
-      <Card className="overflow-hidden">
-        {loading ? (
-          <div className="py-20 flex flex-col items-center">
-            <LoadingSpinner size="lg" />
-            <p className="text-slate-500 mt-4">Loading employees...</p>
+          {hasActiveFilters && (
+            <button
+              onClick={() => { setSearchTerm(''); setDepartmentFilter(''); }}
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors flex items-center gap-1"
+            >
+              <X size={14} />
+              Clear filters
+            </button>
+          )}
+
+          <div className="ml-auto text-sm text-slate-400 font-medium">
+            {filteredEmployees.length} result{filteredEmployees.length !== 1 ? 's' : ''}
           </div>
+        </div>
+      </div>
+
+      {/* Employee Table */}
+      <div className="animate-slide-up stagger-2">
+        {loading ? (
+          <SkeletonTable rows={6} columns={6} />
         ) : filteredEmployees.length === 0 ? (
-          <div className="py-20 text-center">
-            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Users className="text-slate-400" size={40} />
-            </div>
-            <h3 className="text-lg font-semibold text-slate-800 mb-1">No employees found</h3>
-            <p className="text-slate-500">Try adjusting your search or filters</p>
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
+            <EmptyState 
+              title={hasActiveFilters ? "No employees match your filters" : "No employees yet"}
+              description={hasActiveFilters ? "Try adjusting your search or filters" : "Get started by adding your first employee"}
+              icon={Users}
+              action={hasActiveFilters ? undefined : handleAdd}
+              actionLabel="Add Employee"
+            />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Employee
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Matricule
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Department
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Position
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredEmployees.map((employee) => (
-                  <tr key={employee.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-md">
-                          {getInitials(employee.first_name, employee.last_name)}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-slate-900">
-                            {employee.first_name} {employee.last_name}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="font-mono text-sm text-slate-600">{employee.matricule}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-slate-600">{employee.email}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium">
-                        {employee.department}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-slate-600">{employee.position}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="px-3 py-1 bg-green-100 text-green-700 rounded-xl text-xs font-semibold">
-                        Active
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          icon={Edit2}
-                          onClick={() => handleEdit(employee)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          icon={Trash2}
-                          onClick={() => handleDelete(employee.id)}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </td>
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead>
+                  <tr className="bg-slate-50/80 border-b border-slate-100">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Employee</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Matricule</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider hidden md:table-cell">Department</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider hidden lg:table-cell">Position</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {filteredEmployees.map((employee, idx) => (
+                    <tr 
+                      key={employee.id} 
+                      className="group hover:bg-blue-50/30 transition-colors duration-150 relative"
+                    >
+                      {/* Left accent on hover */}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 bg-gradient-to-br ${getAvatarGradient(employee.first_name + employee.last_name)} rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm`}>
+                            {getInitials(employee.first_name, employee.last_name)}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-slate-900 text-sm">
+                              {employee.first_name} {employee.last_name}
+                            </p>
+                            <p className="text-xs text-slate-500">{employee.email || '—'}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="font-mono text-sm text-slate-600 bg-slate-50 px-2 py-1 rounded-lg">
+                          {employee.matricule}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 hidden md:table-cell">
+                        {employee.department ? (
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border ${getDeptColor(employee.department)}`}>
+                            {employee.department}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 hidden lg:table-cell">
+                        <span className="text-sm text-slate-600">{employee.position || '—'}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Active
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <button
+                            onClick={() => handleEdit(employee)}
+                            className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                            title="Edit"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(employee.id)}
+                            className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
-      </Card>
+      </div>
 
       <Modal
         isOpen={isModalOpen}

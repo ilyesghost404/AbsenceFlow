@@ -8,7 +8,7 @@ const getPageTitle = (pathname) => {
     '/dashboard': 'Dashboard',
     '/employees': 'Employees',
     '/attendance': 'Attendance',
-    '/absences': 'Absences',
+    '/leave-requests': 'Leave Requests',
     '/holidays': 'Holidays',
     '/reports': 'Reports',
     '/settings': 'Settings',

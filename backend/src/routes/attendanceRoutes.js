@@ -8,12 +8,17 @@ const {
   deleteAttendance,
   checkIn,
   checkOut,
-  getTodayAttendance
+  getTodayAttendance,
+  getAnomalies,
+  validateAnomaly
 } = require("../controllers/attendanceController");
 const { requireAuth, authorizeRoles } = require("../middleware/authMiddleware");
 
 // All attendance routes require authentication and are restricted to admin or manager roles
-router.use(requireAuth, authorizeRoles("manager"));
+router.use(requireAuth, authorizeRoles("admin", "manager"));
+
+router.get("/anomalies", getAnomalies);
+router.put("/anomalies/:id/validate", validateAnomaly);
 
 router.get("/", getAttendance);
 router.get("/today", getTodayAttendance);

@@ -1,11 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
-import { 
-  BarChart3, 
-  Users, 
-  CalendarCheck, 
-  CalendarRange, 
-  LogOut, 
+
+import {
+  BarChart3,
+  Users,
+  CalendarCheck,
+  CalendarRange,
+  LogOut,
   Settings,
   X,
   LayoutDashboard,
@@ -28,16 +29,17 @@ const Sidebar = ({ isOpen, onClose }) => {
       );
     } else if (user?.role === 'manager') {
       items.push(
+        { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { path: '/employees', label: 'Employees', icon: Users },
         { path: '/attendance', label: 'Attendance', icon: CalendarCheck },
+        { path: '/leave-requests', label: 'Leave Requests', icon: CalendarDays },
         { path: '/reports', label: 'Reports', icon: BarChart3 },
         { path: '/holidays', label: 'Holidays', icon: CalendarRange }
       );
     } else if (user?.role === 'employee') {
       items.push(
         { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/absences', label: 'My Requests', icon: CalendarDays },
-        { path: '/profile', label: 'My Profile', icon: User },
+        { path: '/leave-requests', label: 'My Requests', icon: CalendarDays },
         { path: '/holidays', label: 'Holidays', icon: CalendarRange }
       );
     }
@@ -48,7 +50,10 @@ const Sidebar = ({ isOpen, onClose }) => {
   const menuItems = getMenuItems();
 
   useEffect(() => {
-    onClose?.();
+    // Only auto-close sidebar on mobile when navigating
+    if (window.innerWidth < 1024) {
+      onClose?.();
+    }
   }, [location.pathname]);
 
   const getRoleLabel = (role) => {
@@ -77,7 +82,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
-              
+
               return (
                 <Link
                   key={item.path}
@@ -109,7 +114,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 </div>
               </div>
             </div>
-            
+
             <div className="space-y-1">
               <Link
                 to="/settings"
@@ -118,7 +123,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <Settings size={18} />
                 <span className="text-sm font-medium">Settings</span>
               </Link>
-              <button 
+              <button
                 onClick={logout}
                 className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-300 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 cursor-pointer"
               >
@@ -142,7 +147,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <p className="text-xs text-blue-200">HR Management</p>
               </div>
             </div>
-            <button 
+            <button
               onClick={onClose}
               className="p-2 hover:bg-white/10 rounded-xl text-slate-300 hover:text-white transition-all"
             >
@@ -154,7 +159,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
-              
+
               return (
                 <Link
                   key={item.path}
@@ -186,7 +191,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 </div>
               </div>
             </div>
-            
+
             <div className="space-y-1">
               <Link
                 to="/settings"
@@ -195,7 +200,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <Settings size={18} />
                 <span className="text-sm font-medium">Settings</span>
               </Link>
-              <button 
+              <button
                 onClick={logout}
                 className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-300 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 cursor-pointer"
               >

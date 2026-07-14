@@ -59,27 +59,29 @@ export const AuthProvider = ({ children }) => {
   }, [initializeAuth]);
 
   const login = async (username, password, rememberMe) => {
-    const response = await api.post('/users/login', { username, password });
+    try {
+      const response = await api.post('/users/login', { username, password });
 
-    if (response.data.success) {
-      const { token: receivedToken, user: receivedUser } = response.data.data;
+      if (response.data.success) {
+        const { token: receivedToken, user: receivedUser } = response.data.data;
 
-      setToken(receivedToken);
-      setUser(receivedUser);
+        setToken(receivedToken);
+        setUser(receivedUser);
 
-      if (rememberMe) {
-        localStorage.setItem('token', receivedToken);
-        localStorage.setItem('user', JSON.stringify(receivedUser));
-      } else {
-        sessionStorage.setItem('token', receivedToken);
-        sessionStorage.setItem('user', JSON.stringify(receivedUser));
+        if (rememberMe) {
+          localStorage.setItem('token', receivedToken);
+          localStorage.setItem('user', JSON.stringify(receivedUser));
+        } else {
+          sessionStorage.setItem('token', receivedToken);
+          sessionStorage.setItem('user', JSON.stringify(receivedUser));
+        }
+
+        toast.success(`Welcome back, ${receivedUser.username}!`);
+        return receivedUser;
       }
-
-      toast.success(`Welcome back, ${receivedUser.username}!`);
-      return receivedUser;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Login failed. Please check your credentials.');
     }
-
-    throw new Error('Login failed. Please check your credentials.');
   };
 
   const logout = useCallback(() => {

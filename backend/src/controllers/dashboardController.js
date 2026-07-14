@@ -56,7 +56,7 @@ const getDashboardStats = async (req, res) => {
       `, [employeeId]);
 
       const usedVacationResult = await db.query(`
-        SELECT SUM(end_date - start_date + 1) as used_days 
+        SELECT start_date, end_date
         FROM absences 
         WHERE employee_id = $1 
         AND status = 'Validated' 
@@ -64,7 +64,13 @@ const getDashboardStats = async (req, res) => {
         AND EXTRACT(YEAR FROM start_date) = $2
       `, [employeeId, currentYear]);
       
-      const usedVacationDays = parseInt(usedVacationResult.rows[0].used_days || 0);
+      let usedVacationDays = 0;
+      for (const row of usedVacationResult.rows) {
+        const startStr = typeof row.start_date === 'string' ? row.start_date : row.start_date.toISOString().split('T')[0];
+        const endStr = typeof row.end_date === 'string' ? row.end_date : row.end_date.toISOString().split('T')[0];
+        const absHolidays = await getHolidays(startStr, endStr);
+        usedVacationDays += countWorkingDays(startStr, endStr, absHolidays);
+      }
       const remainingVacationDays = Math.max(0, 30 - usedVacationDays);
 
       return res.json({
@@ -95,12 +101,27 @@ const getDashboardStats = async (req, res) => {
     const presentResult = await db.query(`
       SELECT COUNT(DISTINCT employee_id) 
       FROM attendance 
-      WHERE date = $1
+      WHERE date = $1 AND status = 'Present'
     `, [today]);
     const presentToday = parseInt(presentResult.rows[0].count);
+
+    const lateResult = await db.query(`
+      SELECT COUNT(DISTINCT employee_id) 
+      FROM attendance 
+      WHERE date = $1 AND status = 'Late'
+    `, [today]);
+    const lateToday = parseInt(lateResult.rows[0].count);
+
     const absentToday = (isTodayWeekend || isTodayHoliday)
       ? 0
-      : Math.max(0, totalEmployees - presentToday);
+      : Math.max(0, totalEmployees - presentToday - lateToday);
+
+    const missingCheckoutResult = await db.query(`
+      SELECT COUNT(DISTINCT employee_id) 
+      FROM attendance 
+      WHERE date < $1 AND check_in IS NOT NULL AND check_out IS NULL
+    `, [today]);
+    const missingCheckout = parseInt(missingCheckoutResult.rows[0].count);
 
     const pendingResult = await db.query("SELECT COUNT(*) FROM absences WHERE status = 'Pending'");
     const pendingRequests = parseInt(pendingResult.rows[0].count);
@@ -110,6 +131,12 @@ const getDashboardStats = async (req, res) => {
 
     const rejectedResult = await db.query("SELECT COUNT(*) FROM absences WHERE status = 'Rejected'");
     const rejectedRequests = parseInt(rejectedResult.rows[0].count);
+
+    const onLeaveTodayResult = await db.query(`
+      SELECT COUNT(DISTINCT employee_id) FROM absences 
+      WHERE status = 'Validated' AND start_date <= $1 AND end_date >= $1
+    `, [today]);
+    const employeesOnLeaveToday = parseInt(onLeaveTodayResult.rows[0].count);
 
     const holidaysResult = await db.query(`
       SELECT COUNT(*) FROM holidays 
@@ -219,11 +246,11 @@ const getDashboardStats = async (req, res) => {
     const recentHolidays = await db.query(`
       SELECT 
         'Holiday added' as action,
-        'Admin' as user_name,
-        CURRENT_TIMESTAMP - (RANDOM() * INTERVAL '30 days') as date_time,
+        name as user_name,
+        holiday_date as date_time,
         'Added' as status
       FROM holidays
-      ORDER BY date_time DESC
+      ORDER BY holiday_date DESC
       LIMIT 2
     `);
     recentActivity.push(...recentHolidays.rows);
@@ -248,9 +275,12 @@ const getDashboardStats = async (req, res) => {
         totalEmployees,
         presentToday,
         absentToday,
+        lateToday,
+        missingCheckout,
         pendingRequests,
         approvedRequests,
         rejectedRequests,
+        employeesOnLeaveToday,
         holidaysThisMonth,
         absenceRate,
         monthlyTrend: monthlyTrendResult.rows,

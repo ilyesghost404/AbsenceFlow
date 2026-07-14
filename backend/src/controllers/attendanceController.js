@@ -179,6 +179,37 @@ const getTodayAttendance = async (req, res) => {
   }
 };
 
+const getAnomalies = async (req, res) => {
+  try {
+    const anomalies = await Attendance.getAnomalies();
+    res.json({ success: true, data: anomalies });
+  } catch (error) {
+    console.error("Error fetching anomalies:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch attendance anomalies" });
+  }
+};
+
+const validateAnomaly = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { validation_status, justification_reason } = req.body;
+    
+    if (!validation_status) {
+      return res.status(400).json({ success: false, message: "Validation status is required" });
+    }
+
+    const attendance = await Attendance.validateAnomaly(id, validation_status, justification_reason || null);
+    if (!attendance) {
+      return res.status(404).json({ success: false, message: "Attendance record not found" });
+    }
+
+    res.json({ success: true, data: attendance });
+  } catch (error) {
+    console.error("Error validating anomaly:", error);
+    res.status(500).json({ success: false, message: "Failed to validate anomaly" });
+  }
+};
+
 module.exports = {
   getAttendance,
   getAttendanceById,
@@ -187,5 +218,7 @@ module.exports = {
   deleteAttendance,
   checkIn,
   checkOut,
-  getTodayAttendance
+  getTodayAttendance,
+  getAnomalies,
+  validateAnomaly
 };

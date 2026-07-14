@@ -1,36 +1,19 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { 
   Users, 
   UserCheck, 
   UserX, 
   Clock, 
-  CheckCircle2, 
-  XCircle, 
   CalendarDays, 
-  TrendingUp, 
-  BarChart3, 
-  Calendar, 
-  Award, 
+  ArrowRight,
+  CheckCircle2,
+  XCircle,
+  Sunrise,
   Activity,
-  CalendarOff
+  TrendingUp
 } from 'lucide-react';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  Cell,
-  PieChart as RechartsPieChart,
-  Pie,
-  Legend
-} from 'recharts';
-import Card from '../components/Card';
+import StatusBadge from '../components/StatusBadge';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { getDashboardStats } from '../services/dashboardService';
 
@@ -63,409 +46,291 @@ const ManagerDashboard = () => {
     fetchData();
   }, []);
 
-  // Process chart data
-  const monthlyTrendData = useMemo(() => {
-    if (!stats || !stats.monthlyTrend) return [];
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return stats.monthlyTrend.map(m => ({
-      name: `${monthNames[parseInt(m.month) - 1]} ${m.year}`,
-      absences: parseInt(m.count)
-    }));
-  }, [stats]);
-
-  const deptData = useMemo(() => {
-    if (!stats || !stats.absencesByDepartment) return [];
-    return stats.absencesByDepartment.map(d => ({
-      name: d.department,
-      absences: parseInt(d.count)
-    }));
-  }, [stats]);
-
-  const typesData = useMemo(() => {
-    if (!stats || !stats.absenceTypes) return [];
-    return stats.absenceTypes.map(t => ({
-      name: t.type,
-      value: parseInt(t.count)
-    }));
-  }, [stats]);
-
-  const weeklyAttendanceData = useMemo(() => {
-    if (!stats || !stats.weeklyAttendance) return [];
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const dayStats = days.map(() => ({ day: '', present: 0, absent: 0 }));
-    
-    stats.weeklyAttendance.forEach(wa => {
-      const dayIndex = parseInt(wa.day_of_week);
-      dayStats[dayIndex] = {
-        day: days[dayIndex],
-        present: parseInt(wa.present),
-        absent: (stats?.totalEmployees || 0) - parseInt(wa.present)
-      };
-    });
-
-    return dayStats.filter(d => d.day); // Only include days with data
-  }, [stats]);
-
-  const statusData = useMemo(() => {
-    if (!stats) return [];
-    return [
-      { name: 'Approved', value: stats.approvedRequests },
-      { name: 'Pending', value: stats.pendingRequests },
-      { name: 'Rejected', value: stats.rejectedRequests }
-    ];
-  }, [stats]);
-
-  const COLORS = ['#2563eb', '#f59e0b', '#ef4444'];
-  const DEPT_COLORS = ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe'];
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <LoadingSpinner size="lg" />
+      <div className="flex items-center justify-center py-32">
+        <LoadingSpinner size="lg" text="Loading dashboard..." />
       </div>
     );
   }
 
+  const greeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const statCards = [
+    {
+      label: 'Total Employees',
+      value: stats?.totalEmployees || 0,
+      icon: Users,
+      gradient: 'from-blue-500 to-blue-600',
+      shadowColor: 'shadow-blue-500/20',
+      iconBg: 'bg-blue-400/20',
+    },
+    {
+      label: 'Present Today',
+      value: stats?.presentToday || 0,
+      icon: UserCheck,
+      gradient: 'from-emerald-500 to-emerald-600',
+      shadowColor: 'shadow-emerald-500/20',
+      iconBg: 'bg-emerald-400/20',
+    },
+    {
+      label: 'Absent Today',
+      value: stats?.absentToday || 0,
+      icon: UserX,
+      gradient: 'from-rose-500 to-rose-600',
+      shadowColor: 'shadow-rose-500/20',
+      iconBg: 'bg-rose-400/20',
+    },
+    {
+      label: 'Pending Requests',
+      value: stats?.pendingRequests || 0,
+      icon: Clock,
+      gradient: 'from-amber-500 to-orange-500',
+      shadowColor: 'shadow-amber-500/20',
+      iconBg: 'bg-amber-400/20',
+    },
+    {
+      label: 'Upcoming Holidays',
+      value: stats?.holidaysThisMonth || 0,
+      icon: CalendarDays,
+      gradient: 'from-violet-500 to-purple-600',
+      shadowColor: 'shadow-violet-500/20',
+      iconBg: 'bg-violet-400/20',
+    },
+  ];
+
+  // Attendance breakdown for the progress bar
+  const totalEmp = stats?.totalEmployees || 1;
+  const presentPct = Math.round(((stats?.presentToday || 0) / totalEmp) * 100);
+  const absentPct = Math.round(((stats?.absentToday || 0) / totalEmp) * 100);
+  const latePct = Math.round(((stats?.lateToday || 0) / totalEmp) * 100);
+  const onLeavePct = Math.round(((stats?.employeesOnLeaveToday || 0) / totalEmp) * 100);
+
   return (
     <div className="min-h-screen pb-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-800 mb-2">Company Statistics</h1>
-        <p className="text-slate-500">Overview of attendance, absences, and employee statistics</p>
+      {/* Header */}
+      <div className="mb-8 animate-fade-in">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-slate-400 text-sm font-medium mb-1">
+              <Sunrise size={16} />
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </div>
+            <h1 className="text-3xl font-bold text-slate-800">{greeting()} 👋</h1>
+            <p className="text-slate-500 mt-1">Here's how your company is doing today</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <a 
+              href="/leave-requests" 
+              className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-700 font-medium rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm text-sm"
+            >
+              <Clock size={16} className="text-amber-500" />
+              Review Requests
+            </a>
+            <a 
+              href="/attendance" 
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl hover:from-blue-500 hover:to-blue-600 transition-all shadow-md text-sm"
+            >
+              <CalendarDays size={16} />
+              Manage Attendance
+            </a>
+          </div>
+        </div>
       </div>
 
-      {/* Statistics Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card hover>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium">Total Employees</p>
-              <p className="text-3xl font-bold mt-2 text-blue-600">{stats?.totalEmployees || 0}</p>
-            </div>
-            <div className="p-3.5 rounded-xl bg-blue-50">
-              <Users className="text-blue-600" size={28} />
-            </div>
-          </div>
-        </Card>
-
-        <Card hover>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium">Present Today</p>
-              <p className="text-3xl font-bold mt-2 text-green-600">{stats?.presentToday || 0}</p>
-            </div>
-            <div className="p-3.5 rounded-xl bg-green-50">
-              <UserCheck className="text-green-600" size={28} />
-            </div>
-          </div>
-        </Card>
-
-        <Card hover>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium">Absent Today</p>
-              <p className="text-3xl font-bold mt-2 text-red-600">{stats?.absentToday || 0}</p>
-            </div>
-            <div className="p-3.5 rounded-xl bg-red-50">
-              <UserX className="text-red-600" size={28} />
-            </div>
-          </div>
-        </Card>
-
-        <Card hover>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium">Pending Requests</p>
-              <p className="text-3xl font-bold mt-2 text-amber-600">{stats?.pendingRequests || 0}</p>
-            </div>
-            <div className="p-3.5 rounded-xl bg-amber-50">
-              <Clock className="text-amber-600" size={28} />
-            </div>
-          </div>
-        </Card>
-
-        <Card hover>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium">Approved Requests</p>
-              <p className="text-3xl font-bold mt-2 text-green-600">{stats?.approvedRequests || 0}</p>
-            </div>
-            <div className="p-3.5 rounded-xl bg-green-50">
-              <CheckCircle2 className="text-green-600" size={28} />
-            </div>
-          </div>
-        </Card>
-
-        <Card hover>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium">Rejected Requests</p>
-              <p className="text-3xl font-bold mt-2 text-red-600">{stats?.rejectedRequests || 0}</p>
-            </div>
-            <div className="p-3.5 rounded-xl bg-red-50">
-              <XCircle className="text-red-600" size={28} />
-            </div>
-          </div>
-        </Card>
-
-        <Card hover>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium">Holidays This Month</p>
-              <p className="text-3xl font-bold mt-2 text-amber-500">{stats?.holidaysThisMonth || 0}</p>
-            </div>
-            <div className="p-3.5 rounded-xl bg-amber-50">
-              <CalendarDays className="text-amber-500" size={28} />
-            </div>
-          </div>
-        </Card>
-
-        <Card hover>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium">Absence Rate</p>
-              <p className="text-3xl font-bold mt-2 text-blue-600">{stats?.absenceRate || 0}%</p>
-            </div>
-            <div className="p-3.5 rounded-xl bg-blue-50">
-              <TrendingUp className="text-blue-600" size={28} />
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <Card>
-          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-            <TrendingUp className="text-blue-600" size={24} />
-            Monthly Absence Trend
-          </h3>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={monthlyTrendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="name" stroke="#64748b" />
-                <YAxis stroke="#64748b" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
-                    border: '1px solid #e2e8f0', 
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)'
-                  }} 
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="absences" 
-                  stroke="#2563eb" 
-                  strokeWidth={4}
-                  dot={{ r: 6, fill: '#2563eb', strokeWidth: 2, stroke: '#dbeafe' }}
-                  activeDot={{ r: 8 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-
-        <Card>
-          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-            <BarChart3 className="text-blue-600" size={24} />
-            Absences by Department
-          </h3>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={deptData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="name" stroke="#64748b" />
-                <YAxis stroke="#64748b" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
-                    border: '1px solid #e2e8f0', 
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)'
-                  }} 
-                />
-                <Bar dataKey="absences" radius={[10, 10, 0, 0]}>
-                  {deptData.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={DEPT_COLORS[index % DEPT_COLORS.length]} 
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-      </div>
-
-      {/* Charts Row 2 & Info */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        <Card className="lg:col-span-2">
-          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-            <BarChart3 className="text-blue-600" size={24} />
-            Weekly Attendance
-          </h3>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weeklyAttendanceData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="day" stroke="#64748b" />
-                <YAxis stroke="#64748b" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
-                    border: '1px solid #e2e8f0', 
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)'
-                  }} 
-                />
-                <Legend />
-                <Bar dataKey="present" fill="#2563eb" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="absent" fill="#ef4444" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-      </div>
-
-      {/* Charts Row 3: Status Donut + Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        <Card className="lg:col-span-1">
-          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-            <Award className="text-blue-600" size={24} />
-            Requests Status
-          </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <RechartsPieChart>
-                <Pie
-                  data={statusData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
-                    border: '1px solid #e2e8f0', 
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)'
-                  }} 
-                />
-                <Legend />
-              </RechartsPieChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-
-        <Card className="lg:col-span-2">
-          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-            <Activity className="text-blue-600" size={24} />
-            Recent Activity
-          </h3>
-          <div className="space-y-4">
-            {stats?.recentActivity?.slice(0, 5).map((activity, idx) => (
-              <div key={idx} className="flex items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100 transition-all duration-200 hover:bg-slate-100">
-                <div className="flex-1">
-                  <p className="font-semibold text-slate-900">{activity.user_name}</p>
-                  <p className="text-sm text-slate-500">{activity.action}</p>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {new Date(activity.date_time).toLocaleString()}
-                  </p>
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+        {statCards.map((card, i) => {
+          const Icon = card.icon;
+          return (
+            <div
+              key={card.label}
+              className={`animate-slide-up stagger-${i + 1} bg-gradient-to-br ${card.gradient} rounded-2xl p-5 text-white shadow-lg ${card.shadowColor} transition-all duration-300 hover:-translate-y-1 hover:shadow-xl`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className={`p-2 rounded-xl ${card.iconBg}`}>
+                  <Icon size={20} />
                 </div>
-                <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
-                  activity.status === 'Validated' || activity.status === 'Active' || activity.status === 'Added'
-                    ? 'bg-green-100 text-green-700'
-                    : activity.status === 'Rejected'
-                    ? 'bg-red-100 text-red-700'
-                    : 'bg-amber-100 text-amber-700'
-                }`}>
-                  {activity.status}
-                </span>
               </div>
-            ))}
-          </div>
-        </Card>
+              <p className="text-3xl font-black tracking-tight">{card.value}</p>
+              <p className="text-white/80 text-sm font-medium mt-1">{card.label}</p>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Quick Insights Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card hover>
-          <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <BarChart3 className="text-blue-600" size={20} />
-            Department with Highest Absences
-          </h4>
-          {stats?.deptWithMostAbsences ? (
-            <div>
-              <p className="text-2xl font-bold text-blue-600">{stats.deptWithMostAbsences.department}</p>
-              <p className="text-slate-500 mt-2">{stats.deptWithMostAbsences.count} absences</p>
+      {/* Two Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Today's Attendance Summary — Left (3 cols) */}
+        <div className="lg:col-span-3 animate-slide-up stagger-3">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-50 rounded-xl">
+                  <Activity className="text-blue-600" size={20} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800">Today's Attendance</h2>
+                  <p className="text-xs text-slate-400 font-medium">Real-time overview</p>
+                </div>
+              </div>
+              <a href="/attendance" className="text-blue-600 hover:text-blue-700 text-sm font-semibold flex items-center gap-1 transition-colors">
+                View All <ArrowRight size={14} />
+              </a>
             </div>
-          ) : (
-            <p className="text-slate-500">No data available</p>
-          )}
-        </Card>
+            
+            <div className="p-6">
+              {/* Attendance Progress Bar */}
+              <div className="mb-6">
+                <div className="flex items-center gap-1 h-4 rounded-full overflow-hidden bg-slate-100">
+                  {presentPct > 0 && (
+                    <div 
+                      className="h-full bg-emerald-500 rounded-l-full transition-all duration-700 ease-out" 
+                      style={{ width: `${presentPct}%` }} 
+                      title={`Present: ${stats?.presentToday || 0}`}
+                    />
+                  )}
+                  {latePct > 0 && (
+                    <div 
+                      className="h-full bg-amber-400 transition-all duration-700 ease-out" 
+                      style={{ width: `${latePct}%` }} 
+                      title={`Late: ${stats?.lateToday || 0}`}
+                    />
+                  )}
+                  {onLeavePct > 0 && (
+                    <div 
+                      className="h-full bg-violet-400 transition-all duration-700 ease-out" 
+                      style={{ width: `${onLeavePct}%` }} 
+                      title={`On Leave: ${stats?.employeesOnLeaveToday || 0}`}
+                    />
+                  )}
+                  {absentPct > 0 && (
+                    <div 
+                      className="h-full bg-rose-400 rounded-r-full transition-all duration-700 ease-out" 
+                      style={{ width: `${absentPct}%` }} 
+                      title={`Absent: ${stats?.absentToday || 0}`}
+                    />
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                    <span className="text-xs text-slate-600 font-medium">Present <span className="font-bold text-slate-800">{stats?.presentToday || 0}</span></span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-amber-400" />
+                    <span className="text-xs text-slate-600 font-medium">Late <span className="font-bold text-slate-800">{stats?.lateToday || 0}</span></span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-violet-400" />
+                    <span className="text-xs text-slate-600 font-medium">On Leave <span className="font-bold text-slate-800">{stats?.employeesOnLeaveToday || 0}</span></span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-rose-400" />
+                    <span className="text-xs text-slate-600 font-medium">Absent <span className="font-bold text-slate-800">{stats?.absentToday || 0}</span></span>
+                  </div>
+                </div>
+              </div>
 
-        <Card hover>
-          <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <Users className="text-blue-600" size={20} />
-            Employee with Most Absences
-          </h4>
-          {stats?.topEmployee ? (
-            <div>
-              <p className="text-2xl font-bold text-blue-600">{stats.topEmployee.name}</p>
-              <p className="text-slate-500 mt-2">{stats.topEmployee.count} absences</p>
+              {/* Quick Stats Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-slate-50 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-black text-slate-800">{stats?.missingCheckout || 0}</p>
+                  <p className="text-xs text-slate-500 font-medium mt-1">Missing Checkout</p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-black text-slate-800">{`${stats?.absenceRate || 0}%`}</p>
+                  <p className="text-xs text-slate-500 font-medium mt-1">Absence Rate</p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-black text-slate-800">{stats?.approvedRequests || 0}</p>
+                  <p className="text-xs text-slate-500 font-medium mt-1">Approved</p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-black text-slate-800">{stats?.rejectedRequests || 0}</p>
+                  <p className="text-xs text-slate-500 font-medium mt-1">Rejected</p>
+                </div>
+              </div>
+
+              {/* Next Holiday */}
+              {stats?.nextHoliday && (
+                <div className="mt-4 bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-100 rounded-xl p-4 flex items-center gap-3">
+                  <div className="p-2 bg-violet-100 rounded-xl">
+                    <CalendarDays className="text-violet-600" size={20} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-violet-800 truncate">Next Holiday: {stats.nextHoliday.name}</p>
+                    <p className="text-xs text-violet-600 font-medium">
+                      {parseLocalDate(stats.nextHoliday.holiday_date)?.toLocaleDateString('en-US', {
+                        weekday: 'long', month: 'long', day: 'numeric'
+                      }) ?? '—'}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
-          ) : (
-            <p className="text-slate-500">No data available</p>
-          )}
-        </Card>
+          </div>
+        </div>
 
-        <Card hover>
-          <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <Calendar className="text-blue-600" size={20} />
-            Next Upcoming Holiday
-          </h4>
-          {stats?.nextHoliday ? (
-            <div>
-              <p className="text-2xl font-bold text-amber-500">{stats.nextHoliday.name}</p>
-              <p className="text-slate-500 mt-2">
-                {parseLocalDate(stats.nextHoliday.holiday_date)?.toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                }) ?? '—'}
-              </p>
+        {/* Recent Leave Requests — Right (2 cols) */}
+        <div className="lg:col-span-2 animate-slide-up stagger-4">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden h-full flex flex-col">
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-amber-50 rounded-xl">
+                  <Clock className="text-amber-600" size={20} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800">Recent Requests</h2>
+                  <p className="text-xs text-slate-400 font-medium">Latest leave activity</p>
+                </div>
+              </div>
+              <a href="/leave-requests" className="text-blue-600 hover:text-blue-700 text-sm font-semibold flex items-center gap-1 transition-colors">
+                View All <ArrowRight size={14} />
+              </a>
             </div>
-          ) : (
-            <p className="text-slate-500">No upcoming holidays</p>
-          )}
-        </Card>
-
-        <Card hover>
-          <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <TrendingUp className="text-blue-600" size={20} />
-            Average Absence Duration
-          </h4>
-          <p className="text-2xl font-bold text-blue-600">{stats?.avgAbsenceDuration || 0} days</p>
-        </Card>
-
-        <Card hover>
-          <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <CalendarOff className="text-blue-600" size={20} />
-            Total Absences This Month
-          </h4>
-          <p className="text-2xl font-bold text-red-600">{stats?.absencesThisMonth || 0}</p>
-        </Card>
+            
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+              {stats?.recentActivity?.length > 0 ? (
+                <div className="divide-y divide-slate-50">
+                  {stats.recentActivity.slice(0, 6).map((activity, idx) => (
+                    <div key={idx} className="px-6 py-4 hover:bg-slate-50/50 transition-colors">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 min-w-0">
+                          <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5">
+                            {activity.user_name?.substring(0, 2).toUpperCase() || 'U'}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-slate-800 text-sm truncate">{activity.user_name}</p>
+                            <p className="text-xs text-slate-500 truncate">{activity.action}</p>
+                          </div>
+                        </div>
+                        <StatusBadge status={activity.status} />
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-1.5 pl-12">
+                        {new Date(activity.date_time).toLocaleString('en-US', { 
+                          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                        })}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mb-3">
+                    <Clock className="text-slate-400" size={24} />
+                  </div>
+                  <p className="text-sm font-medium text-slate-500">No recent activity</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

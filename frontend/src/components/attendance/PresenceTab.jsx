@@ -2,11 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { 
   RefreshCw, Search, Filter, LogIn, LogOut, CheckCircle2, 
-  Users, UserCheck, UserX, Clock, AlertCircle
+  Users, UserCheck, UserX, Clock, AlertCircle, X, TrendingUp
 } from 'lucide-react';
-import Card from '../../components/Card';
 import Button from '../../components/Button';
-import LoadingSpinner from '../../components/LoadingSpinner';
+import LoadingSpinner, { SkeletonTable } from '../../components/LoadingSpinner';
+import EmptyState from '../../components/EmptyState';
 import { getTodayAttendance, checkIn, checkOut } from '../../services/presenceService';
 
 const PresenceTab = () => {
@@ -55,7 +55,7 @@ const PresenceTab = () => {
   };
 
   const formatTime = (time) => {
-    if (!time) return "-";
+    if (!time) return "—";
     if (typeof time === 'string') {
       return time.slice(0, 5);
     }
@@ -64,12 +64,12 @@ const PresenceTab = () => {
 
   const getStatusDisplay = (attendance) => {
     if (!attendance.check_in) {
-      return { label: "Not Checked In", color: "text-slate-500", bg: "bg-slate-100", icon: AlertCircle };
+      return { label: "Not Checked In", color: "text-slate-500", bg: "bg-slate-100", icon: AlertCircle, dotColor: "bg-slate-400" };
     }
     if (attendance.check_out) {
-      return { label: attendance.status || "Present", color: "text-green-700", bg: "bg-green-100", icon: CheckCircle2 };
+      return { label: attendance.status || "Present", color: "text-emerald-700", bg: "bg-emerald-50", icon: CheckCircle2, dotColor: "bg-emerald-500" };
     }
-    return { label: "Checked In", color: "text-blue-700", bg: "bg-blue-100", icon: Clock };
+    return { label: "Checked In", color: "text-blue-700", bg: "bg-blue-50", icon: Clock, dotColor: "bg-blue-500" };
   };
 
   // Calculate statistics
@@ -99,113 +99,84 @@ const PresenceTab = () => {
     return matchesSearch && matchesFilter;
   });
 
-  // Function to get initials from name
   const getInitials = (firstName, lastName) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
+  const statItems = [
+    { label: 'Present', value: stats.present, icon: UserCheck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: 'Absent', value: stats.absent, icon: UserX, color: 'text-rose-600', bg: 'bg-rose-50' },
+    { label: 'Attendance', value: `${stats.attendancePercentage}%`, icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-50' },
+  ];
+
   return (
-    <div>
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
-        <Card hover className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium mb-1">Total Employees</p>
-              <p className="text-3xl font-bold text-slate-800">{stats.total}</p>
-            </div>
-            <div className="p-4 rounded-xl bg-blue-50">
-              <Users className="text-blue-600" size={28} />
-            </div>
-          </div>
-        </Card>
-
-        <Card hover className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium mb-1">Present Today</p>
-              <p className="text-3xl font-bold text-green-600">{stats.present}</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card hover className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium mb-1">Absent Today</p>
-              <p className="text-3xl font-bold text-red-600">{stats.absent}</p>
-            </div>
-            <div className="p-4 rounded-xl bg-red-50">
-              <UserX className="text-red-600" size={28} />
-            </div>
-          </div>
-        </Card>
-
-        <Card hover className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium mb-1">Checked In</p>
-              <p className="text-3xl font-bold text-blue-600">{stats.checkedIn}</p>
-            </div>
-            <div className="p-4 rounded-xl bg-blue-50">
-              <UserCheck className="text-blue-600" size={28} />
-            </div>
-          </div>
-        </Card>
-
-        <Card hover className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-slate-500 text-sm font-medium mb-1">Attendance Rate</p>
-              <p className="text-3xl font-bold text-amber-600">{stats.attendancePercentage}%</p>
-            </div>
-            <div className="p-4 rounded-xl bg-amber-50">
-              <CheckCircle2 className="text-amber-600" size={28} />
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Header with date and refresh */}
-      <div className="flex flex-wrap items-center justify-between mb-6 gap-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-xl font-bold text-slate-800">Today's Attendance</h2>
-          <div className="px-4 py-2 bg-blue-50 border border-blue-200 rounded-xl">
-            <span className="text-blue-700 text-sm font-medium">
-              {new Date().toLocaleDateString('en-US', {
-                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+    <div className="space-y-6">
+      {/* Compact Stats Bar */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+        <div className="flex flex-wrap items-center gap-6">
+          {/* Date badge */}
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-xl">
+            <Clock size={14} className="text-blue-600" />
+            <span className="text-blue-700 text-sm font-semibold">
+              {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
             </span>
           </div>
+
+          <div className="h-8 w-px bg-slate-200 hidden sm:block" />
+
+          {/* Stats inline */}
+          <div className="flex items-center gap-4 flex-1">
+            {statItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.label} className="flex items-center gap-2">
+                  <div className={`p-1.5 rounded-lg ${item.bg}`}>
+                    <Icon size={14} className={item.color} />
+                  </div>
+                  <div>
+                    <p className="text-lg font-black text-slate-800 leading-none">{item.value}</p>
+                    <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">{item.label}</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        <Button
-          variant="secondary"
-          icon={RefreshCw}
-          onClick={fetchData}
-          disabled={loading}
-          className="!px-5"
-        >
-          Refresh
-        </Button>
+
+          <Button
+            variant="secondary"
+            icon={RefreshCw}
+            onClick={fetchData}
+            disabled={loading}
+            size="sm"
+          >
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="flex flex-wrap gap-4 mb-6">
+      <div className="flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 min-w-[250px]">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input
             type="text"
             placeholder="Search by employee name or matricule"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
           />
+          {searchTerm && (
+            <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+              <X size={16} />
+            </button>
+          )}
         </div>
-        <div className="flex items-center gap-2 bg-white rounded-2xl border border-slate-200 px-4">
-          <Filter className="text-slate-400" size={20} />
+        <div className="flex items-center gap-2 bg-white rounded-xl border border-slate-200 px-3">
+          <Filter className="text-slate-400" size={16} />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="py-3 bg-transparent focus:outline-none"
+            className="py-2.5 bg-transparent focus:outline-none text-sm font-medium text-slate-700"
           >
             <option value="">All Statuses</option>
             <option value="not checked">Not Checked In</option>
@@ -216,107 +187,96 @@ const PresenceTab = () => {
       </div>
 
       {/* Attendance Table */}
-      <Card className="overflow-hidden">
-        {loading ? (
-          <div className="py-20 flex flex-col items-center">
-            <LoadingSpinner size="lg" />
-            <p className="text-slate-500 mt-4">Loading attendance...</p>
-          </div>
-        ) : filteredData.length === 0 ? (
-          <div className="py-20 text-center">
-            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Users className="text-slate-400" size={40} />
-            </div>
-            <h3 className="text-lg font-semibold text-slate-800 mb-1">No employees found</h3>
-            <p className="text-slate-500">Try adjusting your search or filters</p>
-          </div>
-        ) : (
+      {loading ? (
+        <SkeletonTable rows={6} columns={5} />
+      ) : filteredData.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
+          <EmptyState 
+            title="No employees found"
+            description="Try adjusting your search or filters"
+            icon={Users}
+          />
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Employee
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Check In
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Check Out
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Action
-                  </th>
+            <table className="min-w-full">
+              <thead>
+                <tr className="bg-slate-50/80 border-b border-slate-100">
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Employee</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Check In</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Check Out</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-50">
                 {filteredData.map((row) => {
                   const status = getStatusDisplay(row);
                   const StatusIcon = status.icon;
                   return (
-                    <tr key={row.employee_id} className="hover:bg-slate-50 transition-colors">
+                    <tr key={row.employee_id || row.matricule} className="group hover:bg-blue-50/20 transition-colors">
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-md">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm">
                             {getInitials(row.first_name, row.last_name)}
                           </div>
                           <div>
-                            <p className="font-semibold text-slate-900">
+                            <p className="font-semibold text-slate-900 text-sm">
                               {row.first_name} {row.last_name}
                             </p>
-                            <p className="text-sm text-slate-500">{row.matricule}</p>
+                            <p className="text-xs text-slate-500">{row.matricule}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="font-mono text-slate-700 text-sm">
-                          {formatTime(row.check_in)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="font-mono text-slate-700 text-sm">
-                          {formatTime(row.check_out)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-semibold ${status.bg} ${status.color}`}>
-                            <StatusIcon size={14} />
-                            {status.label}
+                        {row.check_in ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg font-mono text-sm font-medium">
+                            <LogIn size={12} />
+                            {formatTime(row.check_in)}
                           </span>
-                        </div>
+                        ) : (
+                          <span className="text-slate-400 text-sm">—</span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
-                        {!row.check_in ? (
-                          <Button
-                            variant="success"
-                            size="sm"
-                            icon={LogIn}
-                            onClick={() => handleCheckIn(row.employee_id)}
-                          >
-                            Check In
-                          </Button>
-                        ) : !row.check_out ? (
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            icon={LogOut}
-                            onClick={() => handleCheckOut(row.employee_id)}
-                          >
-                            Check Out
-                          </Button>
+                        {row.check_out ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg font-mono text-sm font-medium">
+                            <LogOut size={12} />
+                            {formatTime(row.check_out)}
+                          </span>
                         ) : (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            disabled
-                            icon={CheckCircle2}
+                          <span className="text-slate-400 text-sm">—</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${status.bg} ${status.color}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${status.dotColor} ${!row.check_out && row.check_in ? 'animate-pulse' : ''}`} />
+                          {status.label}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {!row.check_in ? (
+                          <button
+                            onClick={() => handleCheckIn(row.employee_id)}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
                           >
-                            Completed
-                          </Button>
+                            <LogIn size={14} />
+                            <span className="hidden sm:inline">Check In</span>
+                          </button>
+                        ) : !row.check_out ? (
+                          <button
+                            onClick={() => handleCheckOut(row.employee_id)}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                          >
+                            <LogOut size={14} />
+                            <span className="hidden sm:inline">Check Out</span>
+                          </button>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 text-slate-500 text-xs font-bold rounded-xl cursor-default">
+                            <CheckCircle2 size={14} />
+                            <span className="hidden sm:inline">Completed</span>
+                          </span>
                         )}
                       </td>
                     </tr>
@@ -325,8 +285,8 @@ const PresenceTab = () => {
               </tbody>
             </table>
           </div>
-        )}
-      </Card>
+        </div>
+      )}
     </div>
   );
 };

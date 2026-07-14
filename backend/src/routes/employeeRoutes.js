@@ -22,9 +22,9 @@ const canViewEmployee = (req, res, next) => {
 
 router.get("/", requireAuth, authorizeRoles("admin", "manager"), getEmployees);
 router.get("/:id", requireAuth, canViewEmployee, getEmployeeById);
-router.post("/", requireAuth, authorizeRoles("manager"), createEmployee);
-router.put("/:id", requireAuth, authorizeRoles("manager"), updateEmployee);
-router.delete("/:id", requireAuth, authorizeRoles("manager"), deleteEmployee);
+router.post("/", requireAuth, authorizeRoles("admin", "manager"), createEmployee);
+router.put("/:id", requireAuth, authorizeRoles("admin", "manager"), updateEmployee);
+router.delete("/:id", requireAuth, authorizeRoles("admin", "manager"), deleteEmployee);
 
 module.exports = router;
 

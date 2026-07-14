@@ -7,46 +7,54 @@ const Attendance = () => {
   const [activeTab, setActiveTab] = useState('presence');
 
   const tabs = [
-    { id: 'presence', label: 'Presence', icon: Clock },
-    { id: 'absences', label: 'Absences', icon: CalendarOff },
+    { id: 'presence', label: 'Attendance', icon: Clock },
+    { id: 'absences', label: 'History', icon: CalendarOff },
   ];
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="animate-fade-in">
         <div className="flex items-center gap-3 mb-1">
-          <CalendarCheck className="text-blue-600" size={32} />
+          <CalendarCheck className="text-blue-600" size={28} />
           <h1 className="text-3xl font-bold text-slate-800">Attendance Management</h1>
         </div>
-        <p className="text-slate-500">Monitor and manage employee attendance and absences</p>
+        <p className="text-slate-500 text-sm">Monitor and manage employee attendance and absences</p>
       </div>
 
-      {/* Modern Tabs */}
-      <div className="bg-white rounded-2xl p-2 shadow-sm border border-slate-100">
-        <div className="flex gap-2">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 sm:flex-none px-6 py-3 flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-300 ${
-                  isActive
-                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                <Icon size={20} />
-                {tab.label}
-              </button>
-            );
-          })}
+      {/* Modern Underline Tabs */}
+      <div className="animate-fade-in stagger-1">
+        <div className="border-b border-slate-200">
+          <div className="flex gap-0">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative px-6 py-3.5 flex items-center gap-2 font-semibold text-sm transition-all duration-300 ${
+                    isActive
+                      ? 'text-blue-600'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  <Icon size={18} />
+                  {tab.label}
+                  {/* Active indicator */}
+                  <div className={`absolute bottom-0 left-0 right-0 h-[3px] rounded-t-full transition-all duration-300 ${
+                    isActive 
+                      ? 'bg-blue-600 opacity-100' 
+                      : 'bg-transparent opacity-0'
+                  }`} />
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       {/* Tab Content */}
-      <div>
+      <div className="animate-slide-up">
         {activeTab === 'presence' && <PresenceTab />}
         {activeTab === 'absences' && <AbsencesTab />}
       </div>

@@ -4,10 +4,11 @@ import ProtectedRoute from './ProtectedRoute';
 import MainLayout from '../layouts/MainLayout';
 import Login from '../pages/Login';
 import EmployeeDashboard from '../pages/EmployeeDashboard';
+import ManagerDashboard from '../pages/ManagerDashboard';
 import AdminDashboard from '../pages/AdminDashboard';
 import Employees from '../pages/Employees';
 import Attendance from '../pages/Attendance';
-import Absences from '../pages/Absences';
+import LeaveRequests from '../pages/LeaveRequests';
 import Holidays from '../pages/Holidays';
 import Reports from '../pages/Reports';
 import UserManagement from '../pages/UserManagement';
@@ -19,14 +20,13 @@ const DashboardRouter = () => {
   
   if (user?.role === 'employee') return <EmployeeDashboard />;
   if (user?.role === 'admin') return <AdminDashboard />;
-  if (user?.role === 'manager') return <Navigate to="/employees" replace />;
+  if (user?.role === 'manager') return <ManagerDashboard />;
   
   return <Navigate to="/login" replace />;
 };
 
 const RootRedirect = () => {
   const { user } = useAuth();
-  if (user?.role === 'manager') return <Navigate to="/employees" replace />;
   return <Navigate to="/dashboard" replace />;
 };
 
@@ -48,14 +48,14 @@ const AppRoutes = () => {
               <Route path="/settings" element={<Settings />} />
               <Route path="/profile" element={<Profile />} />
               
-              {/* Admin and Employee Dashboard */}
-              <Route element={<ProtectedRoute allowedRoles={['admin', 'employee']} />}>
+              {/* Dashboard for all roles */}
+              <Route element={<ProtectedRoute allowedRoles={['admin', 'manager', 'employee']} />}>
                 <Route path="/dashboard" element={<DashboardRouter />} />
               </Route>
               
               {/* Manager and Employee routes */}
               <Route element={<ProtectedRoute allowedRoles={['manager', 'employee']} />}>
-                <Route path="/absences" element={<Absences />} />
+                <Route path="/leave-requests" element={<LeaveRequests />} />
                 <Route path="/holidays" element={<Holidays />} />
               </Route>
 
