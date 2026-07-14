@@ -17,6 +17,15 @@ const AdminSecurityCenter = () => {
   const [auditLogs, setAuditLogs] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('users'); // 'users' or 'logs'
+  const [stats, setStats] = useState({
+    total_users: 0,
+    active_accounts: 0,
+    locked_accounts: 0,
+    disabled_accounts: 0,
+    online_users: 0,
+    offline_users: 0,
+    last_activity: null
+  });
 
   // Pagination states
   const [usersPage, setUsersPage] = useState(1);
@@ -41,7 +50,12 @@ const AdminSecurityCenter = () => {
         api.get('/users/audit-logs', { params: { limit: 1000 } })
       ]);
 
-      if (usersRes.data.success) setUsers(usersRes.data.data || usersRes.data);
+      if (usersRes.data.success) {
+        setUsers(usersRes.data.data || []);
+        if (usersRes.data.stats) {
+          setStats(usersRes.data.stats);
+        }
+      }
       if (logsRes.data.success) setAuditLogs(logsRes.data.data || logsRes.data);
     } catch (error) {
       console.error('Error fetching admin security data:', error);
@@ -107,10 +121,6 @@ const AdminSecurityCenter = () => {
     );
   }
 
-  // Calculate global stats
-  const totalLocked = users.filter(u => isLocked(u.locked_until)).length;
-  const totalActiveSessions = users.reduce((acc, u) => acc + parseInt(u.active_sessions || 0), 0);
-
   return (
     <div className="min-h-screen pb-12 max-w-7xl mx-auto">
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -123,33 +133,77 @@ const AdminSecurityCenter = () => {
         </Button>
       </div>
 
-      {/* Global Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-        <Card className="p-6 border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl">
-            <Users size={28} />
+      {/* Global Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+        <Card className="p-5 border-slate-200 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+            <Users size={24} />
           </div>
           <div>
-            <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Total Users</p>
-            <p className="text-3xl font-black text-slate-800">{users.length}</p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">Total Users</p>
+            <p className="text-2xl font-black text-slate-800">{stats.total_users}</p>
           </div>
         </Card>
-        <Card className="p-6 border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="p-4 bg-amber-50 text-amber-600 rounded-2xl">
-            <Monitor size={28} />
+        
+        <Card className="p-5 border-slate-200 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+            <Unlock size={24} />
           </div>
           <div>
-            <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Active Sessions</p>
-            <p className="text-3xl font-black text-slate-800">{totalActiveSessions}</p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">Active</p>
+            <p className="text-2xl font-black text-slate-800">{stats.active_accounts}</p>
           </div>
         </Card>
-        <Card className="p-6 border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="p-4 bg-red-50 text-red-600 rounded-2xl">
-            <Lock size={28} />
+
+        <Card className="p-5 border-slate-200 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-red-50 text-red-600 rounded-xl">
+            <Lock size={24} />
           </div>
           <div>
-            <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Locked Accounts</p>
-            <p className="text-3xl font-black text-slate-800">{totalLocked}</p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">Locked</p>
+            <p className="text-2xl font-black text-slate-800">{stats.locked_accounts}</p>
+          </div>
+        </Card>
+
+        <Card className="p-5 border-slate-200 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-slate-100 text-slate-600 rounded-xl">
+            <XCircle size={24} />
+          </div>
+          <div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">Disabled</p>
+            <p className="text-2xl font-black text-slate-800">{stats.disabled_accounts}</p>
+          </div>
+        </Card>
+
+        <Card className="p-5 border-slate-200 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+            <Monitor size={24} />
+          </div>
+          <div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">Online</p>
+            <p className="text-2xl font-black text-slate-800">{stats.online_users}</p>
+          </div>
+        </Card>
+
+        <Card className="p-5 border-slate-200 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-slate-50 text-slate-400 rounded-xl">
+            <PowerOff size={24} />
+          </div>
+          <div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">Offline</p>
+            <p className="text-2xl font-black text-slate-800">{stats.offline_users}</p>
+          </div>
+        </Card>
+
+        <Card className="p-5 border-slate-200 shadow-sm flex items-center gap-4 col-span-2">
+          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
+            <Activity size={24} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">Last System Activity</p>
+            <p className="text-sm font-semibold text-slate-800 truncate">
+              {formatDate(stats.last_activity)}
+            </p>
           </div>
         </Card>
       </div>
@@ -194,16 +248,20 @@ const AdminSecurityCenter = () => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="py-4 px-6 text-[11px] font-bold text-slate-400 uppercase tracking-wider">User</th>
-                    <th className="py-4 px-6 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                    <th className="py-4 px-6 text-[11px] font-bold text-slate-400 uppercase tracking-wider">2FA</th>
-                    <th className="py-4 px-6 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active Sessions</th>
+                    <th className="py-4 px-6 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Username</th>
+                    <th className="py-4 px-6 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Role</th>
+                    <th className="py-4 px-6 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Account Status</th>
+                    <th className="py-4 px-6 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Online Status</th>
+                    <th className="py-4 px-6 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Last Login</th>
                     <th className="py-4 px-6 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredUsers.slice((usersPage - 1) * limit, usersPage * limit).map((u) => {
                     const locked = isLocked(u.locked_until);
+                    const disabled = !u.is_active;
+                    const online = parseInt(u.active_sessions || 0) > 0;
+                    
                     return (
                       <tr key={u.id} className="hover:bg-slate-50 transition-colors">
                         <td className="py-4 px-6">
@@ -218,28 +276,38 @@ const AdminSecurityCenter = () => {
                           </div>
                         </td>
                         <td className="py-4 px-6">
-                          {locked ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-red-100 text-red-600">
-                              <Lock size={12} /> Locked
+                          <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg uppercase tracking-wide">
+                            {u.role}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6">
+                          {disabled ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                              <span className="w-2 h-2 rounded-full bg-slate-500"></span> Disabled
+                            </span>
+                          ) : locked ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-red-50 text-red-700 border border-red-200">
+                              <span className="w-2 h-2 rounded-full bg-red-500"></span> Locked
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-100 text-emerald-600">
-                              <Unlock size={12} /> Active
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Active
                             </span>
                           )}
                         </td>
                         <td className="py-4 px-6">
-                          {u.two_factor_enabled ? (
-                            <span className="text-emerald-600 font-bold text-xs bg-emerald-50 px-2 py-1 rounded-md">Enabled</span>
+                          {online ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 animate-pulse">
+                              <span className="w-2 h-2 rounded-full bg-blue-500"></span> Online
+                            </span>
                           ) : (
-                            <span className="text-slate-400 font-medium text-xs">Disabled</span>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-50 text-slate-400 border border-slate-100">
+                              <span className="w-2 h-2 rounded-full bg-slate-300"></span> Offline
+                            </span>
                           )}
                         </td>
-                        <td className="py-4 px-6">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-700">{u.active_sessions}</span>
-                            <span className="text-xs text-slate-400 block">Last: {formatDate(u.last_active)}</span>
-                          </div>
+                        <td className="py-4 px-6 text-sm text-slate-600 font-medium">
+                          {formatDate(u.last_login)}
                         </td>
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-2">
@@ -262,7 +330,7 @@ const AdminSecurityCenter = () => {
                             )}
                             <button
                               onClick={() => handleRevokeSessions(u)}
-                              disabled={parseInt(u.active_sessions) === 0}
+                              disabled={parseInt(u.active_sessions || 0) === 0}
                               className="p-2 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors disabled:opacity-30"
                               title="Revoke All Sessions"
                             >
@@ -275,7 +343,7 @@ const AdminSecurityCenter = () => {
                   })}
                   {filteredUsers.length === 0 && (
                     <tr>
-                      <td colSpan="5" className="py-12 text-center text-slate-500">
+                      <td colSpan="6" className="py-12 text-center text-slate-500">
                         No users found matching "{searchQuery}"
                       </td>
                     </tr>

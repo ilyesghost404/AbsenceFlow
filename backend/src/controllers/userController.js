@@ -22,17 +22,6 @@ const login = async (req, res) => {
 
     const user = await User.getByUsernameOrEmail(username);
 
-    console.log(`[AUTH DEBUG] User query value: "${username}"`);
-    console.log(`[AUTH DEBUG] User found: ${!!user}`);
-    if (user) {
-      console.log(`[AUTH DEBUG] User role: ${user.role}, is_active: ${user.is_active}, is_verified: ${user.is_verified}`);
-      console.log(`[AUTH DEBUG] Password hash exists: ${!!user.password_hash}`);
-      if (user.password_hash) {
-        console.log(`[AUTH DEBUG] Password hash length: ${user.password_hash.length}`);
-        console.log(`[AUTH DEBUG] Password hash prefix: "${user.password_hash.substring(0, 7)}"`);
-      }
-    }
-
     if (!user) {
       return res.status(401).json({ success: false, message: "Invalid credentials" });
     }
@@ -51,7 +40,6 @@ const login = async (req, res) => {
     }
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
-    console.log(`[AUTH DEBUG] Bcrypt comparison result: ${isMatch}`);
 
     if (!isMatch) {
       const attempts = await User.incrementFailedAttempts(user.id);

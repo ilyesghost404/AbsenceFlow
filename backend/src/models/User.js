@@ -23,8 +23,8 @@ class User {
         u.updated_at,
         u.locked_until,
         u.two_factor_enabled,
-        (SELECT COUNT(*) FROM user_sessions us WHERE us.user_id = u.id) as active_sessions,
-        (SELECT MAX(last_activity) FROM user_sessions us WHERE us.user_id = u.id) as last_active,
+        (SELECT COUNT(*)::int FROM user_sessions us WHERE us.user_id = u.id AND us.expires_at > CURRENT_TIMESTAMP) as active_sessions,
+        (SELECT MAX(lh.login_time) FROM login_history lh WHERE lh.user_id = u.id AND lh.success = true) as last_login,
         CONCAT(e.first_name, ' ', e.last_name) AS employee_name
       ${baseQuery}
     `;
@@ -48,12 +48,28 @@ class User {
     const countResult = await db.query(countQuery, search ? [queryParams[0]] : []);
     const dataResult = await db.query(dataQuery, [...queryParams, limit, offset]);
 
+    // Fetch system-wide security statistics from database
+    const statsResult = await db.query(`
+      SELECT
+        (SELECT COUNT(*)::int FROM users) AS total_users,
+        (SELECT COUNT(*)::int FROM users WHERE is_active = true AND (locked_until IS NULL OR locked_until <= CURRENT_TIMESTAMP)) AS active_accounts,
+        (SELECT COUNT(*)::int FROM users WHERE locked_until > CURRENT_TIMESTAMP) AS locked_accounts,
+        (SELECT COUNT(*)::int FROM users WHERE is_active = false) AS disabled_accounts,
+        (SELECT COUNT(DISTINCT user_id)::int FROM user_sessions WHERE expires_at > CURRENT_TIMESTAMP) AS online_users,
+        (SELECT MAX(created_at) FROM activity_logs) AS last_activity
+    `);
+    const stats = statsResult.rows[0];
+    const totalUsers = parseInt(stats.total_users || 0, 10);
+    const onlineUsers = parseInt(stats.online_users || 0, 10);
+    stats.offline_users = Math.max(0, totalUsers - onlineUsers);
+
     return {
       data: dataResult.rows,
       total: parseInt(countResult.rows[0].count, 10),
       page: parseInt(page, 10),
       limit: parseInt(limit, 10),
-      totalPages: Math.ceil(parseInt(countResult.rows[0].count, 10) / limit)
+      totalPages: Math.ceil(parseInt(countResult.rows[0].count, 10) / limit),
+      stats: stats
     };
   }
 

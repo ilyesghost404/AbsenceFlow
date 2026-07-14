@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import SessionTimeout from '../components/SessionTimeout';
 import { Outlet, useLocation } from 'react-router-dom';
 
@@ -44,6 +45,7 @@ const MainLayout = () => {
         <main className="flex-1 p-6">
           <Outlet />
         </main>
+        <Footer />
       </div>
       </div>
     </SessionTimeout>
