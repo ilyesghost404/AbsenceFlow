@@ -18,7 +18,9 @@ const {
   getUsers, 
   createUser, 
   updateUser, 
-  deleteUser 
+  deleteUser,
+  activateAccount,
+  verifyActivationToken
 } = require("../controllers/userController");
 const { requireAuth, authorizeRoles } = require("../middleware/authMiddleware");
 
@@ -26,6 +28,8 @@ const { requireAuth, authorizeRoles } = require("../middleware/authMiddleware");
 router.post("/login", login);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
+router.post("/activate-account", activateAccount);
+router.get("/activate-account/verify", verifyActivationToken);
 router.post("/verify-email", verifyEmail);
 
 // Authenticated user profile routes

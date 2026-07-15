@@ -341,38 +341,45 @@ const createUser = async (req, res) => {
   const ipAddress = req.ip || req.headers["x-forwarded-for"] || req.socket.remoteAddress;
 
   try {
-    const { username, email, password, role, employee_id } = req.body;
+    const { username, email, role, employee_id } = req.body;
 
-    if (!username || !email || !password || !role) {
-      return res.status(400).json({ success: false, message: "Username, email, password, and role are required" });
+    if (!username || !email || !role) {
+      return res.status(400).json({ success: false, message: "Username, email, and role are required" });
     }
 
-    const password_hash = await bcrypt.hash(password, 10);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ success: false, message: "Invalid email address format" });
+    }
+
+    // Dummy password since they will set it themselves
+    const password_hash = "PENDING_ACTIVATION_" + crypto.randomBytes(16).toString("hex");
+    
+    // Generate Activation Token
+    const activationToken = crypto.randomBytes(32).toString("hex");
+    const activationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
     const newUser = await User.create({
       username,
       email,
       password_hash,
       role,
-      employee_id
-    }); // Note: is_verified defaults to FALSE in the DB schema now
+      employee_id,
+      account_status: 'Pending',
+      activation_token: activationToken,
+      activation_token_expiry: activationTokenExpiry
+    });
 
-    // Generate Verification Token
-    const verifyToken = crypto.randomBytes(32).toString("hex");
-    const tokenHash = crypto.createHash("sha256").update(verifyToken).digest("hex");
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
-    await User.saveVerificationToken(newUser.id, tokenHash, expiresAt);
-
-    // Send Verification Email
-    const verifyLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/verify-email?token=${verifyToken}`;
-    await emailService.sendVerificationEmail(email, username, verifyLink);
+    // Send Activation Email
+    const activationLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/activate-account?token=${activationToken}`;
+    await emailService.sendActivationEmail(email, username, activationLink);
 
     // Log activity
     await User.recordActivity(
       req.user.id,
       "user_created",
       newUser.id,
-      `User '${username}' created with role '${role}' by admin '${req.user.username}'. Verification email sent.`,
+      `User '${username}' created with role '${role}' by admin '${req.user.username}'. Activation email sent.`,
       ipAddress
     );
 
@@ -384,6 +391,64 @@ const createUser = async (req, res) => {
       return res.status(400).json({ success: false, message: "Username or email already exists" });
     }
     res.status(500).json({ success: false, message: "Failed to create user" });
+  }
+};
+
+const verifyActivationToken = async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    if (!token) {
+      return res.status(400).json({ success: false, message: "Token is required" });
+    }
+
+    const user = await User.getByActivationToken(token);
+    if (!user) {
+      return res.status(400).json({ success: false, message: "Invalid or expired activation token" });
+    }
+
+    res.json({ success: true, message: "Token is valid" });
+  } catch (error) {
+    console.error("VerifyActivationToken error:", error);
+    res.status(500).json({ success: false, message: "Failed to verify token" });
+  }
+};
+const activateAccount = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ success: false, message: "Token and password are required" });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ success: false, message: "Password must be at least 8 characters long" });
+    }
+
+    const user = await User.getByActivationToken(token);
+    if (!user) {
+      return res.status(400).json({ success: false, message: "Invalid or expired activation token" });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    await User.activateAccount(user.id, passwordHash);
+    
+    // Also mark email as verified just in case
+    await User.verifyUserEmail(user.id);
+
+    // Log activity
+    await User.recordActivity(
+      null, // Self-action
+      "account_activated",
+      user.id,
+      `User '${user.username}' activated their account.`,
+      req.ip || req.headers["x-forwarded-for"] || req.socket.remoteAddress
+    );
+
+    res.json({ success: true, message: "Account activated successfully" });
+  } catch (error) {
+    console.error("ActivateAccount error:", error);
+    res.status(500).json({ success: false, message: "Failed to activate account" });
   }
 };
 
@@ -681,5 +746,7 @@ module.exports = {
   getUsers,
   createUser,
   updateUser,
-  deleteUser
+  deleteUser,
+  activateAccount,
+  verifyActivationToken
 };

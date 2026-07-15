@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { 
   Users, UserPlus, Edit2, Trash2, Shield, UserCheck, UserX, 
-  Mail, Link as LinkIcon, Lock, Activity, Search
+  Mail, Link as LinkIcon, Lock, Activity, Search, Clock
 } from 'lucide-react';
 import Card from '../components/Card';
 import Table from '../components/Table';
@@ -150,7 +150,14 @@ const UserManagement = () => {
     );
   };
 
-  const getStatusBadge = (isActive) => {
+  const getStatusBadge = (isActive, accountStatus) => {
+    if (accountStatus === 'Pending') {
+      return (
+        <span className="flex items-center gap-1 text-amber-600 font-semibold text-sm">
+          <Clock size={16} /> Pending
+        </span>
+      );
+    }
     return isActive ? (
       <span className="flex items-center gap-1 text-green-700 font-semibold text-sm">
         <UserCheck size={16} /> Active
@@ -194,7 +201,7 @@ const UserManagement = () => {
     },
     {
       header: 'Status',
-      render: (row) => getStatusBadge(row.is_active)
+      render: (row) => getStatusBadge(row.is_active, row.account_status)
     },
     {
       header: 'Actions',
@@ -286,22 +293,23 @@ const UserManagement = () => {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              {editingUser ? 'Password (Leave blank to keep current)' : 'Password'}
-            </label>
-            <div className="relative">
-              <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="password"
-                required={!editingUser}
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-700 text-sm"
-                placeholder={editingUser ? '••••••••' : 'Enter account password'}
-              />
+          {editingUser && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Password (Leave blank to keep current)
+              </label>
+              <div className="relative">
+                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-700 text-sm"
+                  placeholder="Leave blank to keep unchanged"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>

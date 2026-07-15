@@ -19,6 +19,7 @@ class User {
         u.employee_id, 
         u.is_active, 
         u.is_verified,
+        u.account_status,
         u.created_at, 
         u.updated_at,
         u.locked_until,
@@ -82,6 +83,7 @@ class User {
         u.role, 
         u.employee_id, 
         u.is_active, 
+        u.account_status,
         u.created_at, 
         u.updated_at,
         CONCAT(e.first_name, ' ', e.last_name) AS employee_name
@@ -104,12 +106,12 @@ class User {
   }
 
   static async create(user) {
-    const { username, email, password_hash, role, employee_id } = user;
+    const { username, email, password_hash, role, employee_id, account_status, activation_token, activation_token_expiry } = user;
     const result = await db.query(`
-      INSERT INTO users (username, email, password_hash, role, employee_id)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING id, username, email, role, employee_id, is_active, created_at, updated_at
-    `, [username, email, password_hash, role, employee_id || null]);
+      INSERT INTO users (username, email, password_hash, role, employee_id, account_status, activation_token, activation_token_expiry)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING id, username, email, role, employee_id, is_active, account_status, created_at, updated_at
+    `, [username, email, password_hash, role, employee_id || null, account_status || 'Active', activation_token || null, activation_token_expiry || null]);
     return result.rows[0];
   }
 
@@ -139,6 +141,22 @@ class User {
 
     const result = await db.query(query, params);
     return result.rows[0];
+  }
+
+  static async getByActivationToken(token) {
+    const result = await db.query(`
+      SELECT * FROM users 
+      WHERE activation_token = $1 AND activation_token_expiry > CURRENT_TIMESTAMP
+    `, [token]);
+    return result.rows[0];
+  }
+
+  static async activateAccount(userId, passwordHash) {
+    await db.query(`
+      UPDATE users 
+      SET password_hash = $1, account_status = 'Active', activation_token = NULL, activation_token_expiry = NULL, activated_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+    `, [passwordHash, userId]);
   }
 
   static async delete(id) {

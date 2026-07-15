@@ -1,54 +1,40 @@
 const nodemailer = require("nodemailer");
 
-// For development, we'll use a test account if no SMTP provided
-// In production, configure SMTP in .env
 let transporter;
 
-const initTransporter = async () => {
-  if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+const initTransporter = () => {
+  if (process.env.EMAIL_HOST && process.env.EMAIL_USER) {
     transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT || 587,
-      secure: process.env.SMTP_SECURE === "true",
+      host: process.env.EMAIL_HOST,
+      port: process.env.EMAIL_PORT || 587,
+      secure: false, // true for 465, false for other ports
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
       },
     });
   } else {
-    // Fallback to Ethereal for testing
-    const testAccount = await nodemailer.createTestAccount();
-    transporter = nodemailer.createTransport({
-      host: "smtp.ethereal.email",
-      port: 587,
-      secure: false,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass,
-      },
-    });
-    console.log(`Ethereal Email created. User: ${testAccount.user}`);
+    console.error("Gmail SMTP credentials are not configured in .env");
   }
 };
 
 initTransporter();
 
 const sendEmail = async (to, subject, htmlContent) => {
-  if (!transporter) await initTransporter();
+  if (!transporter) {
+    console.error("Email service is not configured. Email not sent.");
+    return false;
+  }
   
   try {
     const info = await transporter.sendMail({
-      from: '"AbsenceFlow Security" <security@absenceflow.com>',
+      from: `"${process.env.EMAIL_FROM_NAME || 'AbsenceFlow'}" <${process.env.EMAIL_FROM || 'no-reply@absenceflow.com'}>`,
       to,
       subject,
       html: htmlContent,
     });
     
-    // In dev, log the ethereal URL
-    if (info.messageId && !process.env.SMTP_HOST) {
-      console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
-    }
-    
+    console.log(`Email successfully sent to ${to}. Message ID: ${info.messageId}`);
     return true;
   } catch (error) {
     console.error("Error sending email:", error);
@@ -128,10 +114,59 @@ const sendVerificationEmail = async (userEmail, username, verificationLink) => {
   return sendEmail(userEmail, "Activate Your Account", html);
 };
 
+const sendActivationEmail = async (userEmail, username, activationLink) => {
+  const html = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; padding: 40px 0; margin: 0; color: #334155;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); padding: 32px 24px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">AbsenceFlow</h1>
+        </div>
+        
+        <!-- Content -->
+        <div style="padding: 40px 32px;">
+          <h2 style="color: #0f172a; margin-top: 0; font-size: 24px; font-weight: 600;">Welcome, ${username}!</h2>
+          
+          <p style="font-size: 16px; line-height: 24px; margin-bottom: 24px;">
+            An account has been created for you by the administrator. To get started, please activate your account and set up your secure password.
+          </p>
+          
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${activationLink}" style="display: inline-block; padding: 14px 32px; background-color: #2563eb; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);">
+              Activate Your Account
+            </a>
+          </div>
+          
+          <p style="font-size: 14px; color: #64748b; line-height: 20px; margin-bottom: 8px;">
+            <strong>Note:</strong> This activation link will expire in exactly 24 hours for security reasons.
+          </p>
+          
+          <p style="font-size: 14px; color: #64748b; line-height: 20px;">
+            If the button doesn't work, you can copy and paste the following link into your browser:<br>
+            <a href="${activationLink}" style="color: #2563eb; word-break: break-all;">${activationLink}</a>
+          </p>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background-color: #f1f5f9; padding: 24px; text-align: center; border-top: 1px solid #e2e8f0;">
+          <p style="margin: 0; font-size: 14px; color: #64748b;">
+            Need help? Contact your IT administrator or reply to this email.
+          </p>
+          <p style="margin: 8px 0 0 0; font-size: 12px; color: #94a3b8;">
+            &copy; ${new Date().getFullYear()} AbsenceFlow. All rights reserved.
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+  return sendEmail(userEmail, "Activate Your AbsenceFlow Account", html);
+};
+
 module.exports = {
   sendNewLoginEmail,
   sendPasswordResetEmail,
   sendPasswordChangedEmail,
   sendAccountLockedEmail,
-  sendVerificationEmail
+  sendVerificationEmail,
+  sendActivationEmail
 };

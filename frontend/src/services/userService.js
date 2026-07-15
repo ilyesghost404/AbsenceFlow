@@ -19,3 +19,8 @@ export const deleteUser = async (id) => {
   const response = await api.delete(`/users/${id}`);
   return response.data.data;
 };
+
+export const activateAccount = async (token, password) => {
+  const response = await api.post('/users/activate-account', { token, password });
+  return response.data;
+};

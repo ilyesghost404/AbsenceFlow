@@ -6,6 +6,7 @@ import Login from '../pages/Login';
 import ForgotPassword from '../pages/ForgotPassword';
 import ResetPassword from '../pages/ResetPassword';
 import VerifyEmail from '../pages/VerifyEmail';
+import ActivateAccount from '../pages/ActivateAccount';
 import EmployeeDashboard from '../pages/EmployeeDashboard';
 import ManagerDashboard from '../pages/ManagerDashboard';
 import AdminDashboard from '../pages/AdminDashboard';
@@ -45,6 +46,7 @@ const AppRoutes = () => {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/activate-account" element={<ActivateAccount />} />
 
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
