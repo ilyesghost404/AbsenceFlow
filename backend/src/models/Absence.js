@@ -181,6 +181,23 @@ class Absence {
             totalPages: Math.ceil(parseInt(countResult.rows[0].count, 10) / limit)
         };
     }
+
+    static async checkOverlap(employeeId, startDate, endDate, excludeAbsenceId = null) {
+        let query = `
+            SELECT * FROM absences
+            WHERE employee_id = $1
+              AND status != 'Rejected'
+              AND start_date <= $2
+              AND end_date >= $3
+        `;
+        const params = [employeeId, endDate, startDate];
+        if (excludeAbsenceId) {
+            query += ` AND id != $4`;
+            params.push(excludeAbsenceId);
+        }
+        const result = await db.query(query, params);
+        return result.rows.length > 0;
+    }
 }
 
 module.exports = Absence;

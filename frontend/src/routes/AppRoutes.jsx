@@ -66,12 +66,12 @@ const AppRoutes = () => {
               <Route element={<ProtectedRoute allowedRoles={['manager', 'employee']} />}>
                 <Route path="/leave-requests" element={<LeaveRequests />} />
                 <Route path="/holidays" element={<Holidays />} />
+                <Route path="/attendance" element={<Attendance />} />
               </Route>
 
-              {/* Manager only routes */}
-              <Route element={<ProtectedRoute allowedRoles={['manager']} />}>
+              {/* Manager and Admin routes */}
+              <Route element={<ProtectedRoute allowedRoles={['manager', 'admin']} />}>
                 <Route path="/employees" element={<Employees />} />
-                <Route path="/attendance" element={<Attendance />} />
                 <Route path="/reports" element={<Reports />} />
               </Route>
 

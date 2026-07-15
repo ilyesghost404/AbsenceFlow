@@ -264,6 +264,17 @@ class Attendance {
     );
     return result.rows[0];
   }
+
+  static async getByEmployeeIdAndMonth(employeeId, year, month) {
+    const result = await db.query(`
+      SELECT * FROM attendance
+      WHERE employee_id = $1
+        AND EXTRACT(YEAR FROM date) = $2
+        AND EXTRACT(MONTH FROM date) = $3
+      ORDER BY date DESC
+    `, [employeeId, year, month]);
+    return result.rows;
+  }
 }
 
 module.exports = Attendance;

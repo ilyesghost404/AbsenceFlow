@@ -1,5 +1,5 @@
 const db = require("../config/database");
-const { getHolidays, countWorkingDays } = require("../services/attendanceService");
+const { getHolidays, countWorkingDays, toDateString } = require("../services/attendanceService");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Existing dashboard stats (used by employee/manager dashboards — DO NOT REMOVE)
@@ -66,8 +66,8 @@ const getDashboardStats = async (req, res) => {
       
       let usedVacationDays = 0;
       for (const row of usedVacationResult.rows) {
-        const startStr = typeof row.start_date === 'string' ? row.start_date : row.start_date.toISOString().split('T')[0];
-        const endStr = typeof row.end_date === 'string' ? row.end_date : row.end_date.toISOString().split('T')[0];
+        const startStr = toDateString(row.start_date);
+        const endStr = toDateString(row.end_date);
         const absHolidays = await getHolidays(startStr, endStr);
         usedVacationDays += countWorkingDays(startStr, endStr, absHolidays);
       }
@@ -219,8 +219,8 @@ const getDashboardStats = async (req, res) => {
     `);
     let totalWorkingAbsenceDays = 0;
     for (const row of absenceDatesResult.rows) {
-      const startStr = row.start_date.toISOString ? row.start_date.toISOString().split('T')[0] : row.start_date;
-      const endStr = row.end_date.toISOString ? row.end_date.toISOString().split('T')[0] : row.end_date;
+      const startStr = toDateString(row.start_date);
+      const endStr = toDateString(row.end_date);
       const absHolidays = await getHolidays(startStr, endStr);
       totalWorkingAbsenceDays += countWorkingDays(startStr, endStr, absHolidays);
     }

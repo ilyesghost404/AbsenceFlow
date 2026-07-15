@@ -1,5 +1,5 @@
 const Attendance = require("../models/Attendance");
-const { getHolidays } = require("../services/attendanceService");
+const { getHolidays, toDateString } = require("../services/attendanceService");
 
 const getAttendance = async (req, res) => {
   try {
@@ -137,7 +137,7 @@ const checkIn = async (req, res) => {
     const { employeeId } = req.params;
     // Reject check-in on holidays or weekends
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = toDateString(today);
     const dayOfWeek = today.getDay();
     if (dayOfWeek === 0 || dayOfWeek === 6) {
       return res.status(400).json({ success: false, message: "Cannot check in on a weekend." });
@@ -225,6 +225,28 @@ const validateAnomaly = async (req, res) => {
   }
 };
 
+const getEmployeeAttendanceByMonth = async (req, res) => {
+  try {
+    const { employeeId, year, month } = req.params;
+
+    // Check permissions: employees can only view their own history
+    if (req.user.role === "employee" && req.user.employee_id !== parseInt(employeeId, 10)) {
+      return res.status(403).json({ success: false, message: "Access forbidden: you can only view your own attendance history" });
+    }
+
+    const records = await Attendance.getByEmployeeIdAndMonth(
+      parseInt(employeeId, 10),
+      parseInt(year, 10),
+      parseInt(month, 10)
+    );
+
+    res.json({ success: true, data: records });
+  } catch (error) {
+    console.error("Error fetching employee attendance history:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch attendance history" });
+  }
+};
+
 module.exports = {
   getAttendance,
   getAttendanceById,
@@ -235,5 +257,6 @@ module.exports = {
   checkOut,
   getTodayAttendance,
   getAnomalies,
-  validateAnomaly
+  validateAnomaly,
+  getEmployeeAttendanceByMonth
 };

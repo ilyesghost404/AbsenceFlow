@@ -2,9 +2,17 @@ import { useState } from 'react';
 import { CalendarCheck, Clock, CalendarOff } from 'lucide-react';
 import PresenceTab from '../components/attendance/PresenceTab';
 import AbsencesTab from '../components/attendance/AbsencesTab';
+import EmployeeAttendanceView from '../components/attendance/EmployeeAttendanceView';
+import { useAuth } from '../context/AuthContext';
 
 const Attendance = () => {
+  const { user } = useAuth();
+  const isEmployee = user?.role === 'employee';
   const [activeTab, setActiveTab] = useState('presence');
+
+  if (isEmployee) {
+    return <EmployeeAttendanceView />;
+  }
 
   const tabs = [
     { id: 'presence', label: 'Attendance', icon: Clock },

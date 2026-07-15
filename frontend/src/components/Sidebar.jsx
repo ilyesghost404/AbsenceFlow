@@ -26,7 +26,9 @@ const Sidebar = ({ isOpen, onClose }) => {
     if (user?.role === 'admin') {
       items.push(
         { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { path: '/employees', label: 'Employees', icon: Users },
         { path: '/users', label: 'Users', icon: Users },
+        { path: '/reports', label: 'Reports', icon: BarChart3 },
         { path: '/admin/security', label: 'Security Center', icon: ShieldCheck }
       );
     } else if (user?.role === 'manager') {
@@ -41,6 +43,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     } else if (user?.role === 'employee') {
       items.push(
         { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { path: '/attendance', label: 'My Attendance', icon: CalendarCheck },
         { path: '/leave-requests', label: 'My Requests', icon: CalendarDays },
         { path: '/holidays', label: 'Holidays', icon: CalendarRange }
       );

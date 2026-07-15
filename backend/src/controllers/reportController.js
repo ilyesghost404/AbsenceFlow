@@ -1,6 +1,6 @@
 const db = require("../config/database");
 const reportService = require("../services/reportService");
-const { getHolidays, countWorkingDays } = require("../services/attendanceService");
+const { getHolidays, countWorkingDays, toDateString } = require("../services/attendanceService");
 
 // Get comprehensive report statistics
 const getReportStats = async (req, res) => {
@@ -325,8 +325,8 @@ const getDetailedAbsences = async (req, res) => {
 
         // Compute accurate working-day duration for each absence (excluding holidays and weekends)
         const rows = await Promise.all(dataResult.rows.map(async (row) => {
-            const startStr = row.start_date instanceof Date ? row.start_date.toISOString().split('T')[0] : row.start_date;
-            const endStr = row.end_date instanceof Date ? row.end_date.toISOString().split('T')[0] : row.end_date;
+            const startStr = toDateString(row.start_date);
+            const endStr = toDateString(row.end_date);
             const holidays = await getHolidays(startStr, endStr);
             const workingDays = countWorkingDays(startStr, endStr, holidays);
             return { ...row, duration: workingDays, holidays_excluded: holidays.filter(h => {
@@ -376,13 +376,13 @@ const exportToExcel = async (req, res) => {
         if (year && month) {
             const firstDay = new Date(parseInt(year), parseInt(month) - 1, 1);
             const lastDay = new Date(parseInt(year), parseInt(month), 0);
-            queryParams.startDate = firstDay.toISOString().split('T')[0];
-            queryParams.endDate = lastDay.toISOString().split('T')[0];
+            queryParams.startDate = toDateString(firstDay);
+            queryParams.endDate = toDateString(lastDay);
         }
 
         const workbook = await reportService.generateCustomReport(queryParams);
         
-        const fileName = `AbsenceFlow_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+        const fileName = `AbsenceFlow_Report_${toDateString(new Date())}.xlsx`;
         res.setHeader(
             'Content-Type',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'

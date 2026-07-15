@@ -1,6 +1,6 @@
 const ExcelJS = require("exceljs");
 const db = require("../config/database");
-const { getHolidays, countWorkingDays, calculateAttendance } = require("./attendanceService");
+const { getHolidays, countWorkingDays, calculateAttendance, toDateString } = require("./attendanceService");
 
 async function generateMonthlyReport(year, month) {
     const employeesResult = await db.query("SELECT * FROM employees ORDER BY matricule");
@@ -66,8 +66,8 @@ async function generateMonthlyReport(year, month) {
     for (const employee of employees) {
         const attendance = await calculateAttendance(
             employee.id,
-            startDate.toISOString().split('T')[0],
-            endDate.toISOString().split('T')[0]
+            toDateString(startDate),
+            toDateString(endDate)
         );
         
         totalWorkingDays += attendance.workingDays;
@@ -245,8 +245,8 @@ async function generateCustomReport(filters = {}) {
     });
 
     for (const absence of absences) {
-        const startStr = absence.start_date instanceof Date ? absence.start_date.toISOString().split('T')[0] : absence.start_date;
-        const endStr = absence.end_date instanceof Date ? absence.end_date.toISOString().split('T')[0] : absence.end_date;
+        const startStr = toDateString(absence.start_date);
+        const endStr = toDateString(absence.end_date);
         const absHolidays = await getHolidays(startStr, endStr);
         const workingDays = countWorkingDays(startStr, endStr, absHolidays);
 

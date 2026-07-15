@@ -104,6 +104,15 @@ const createAbsence = async (req, res) => {
             });
         }
 
+        // Overlap validation
+        const hasOverlap = await Absence.checkOverlap(targetEmployeeId, start_date, end_date);
+        if (hasOverlap) {
+            return res.status(400).json({
+                success: false,
+                message: "Cannot create absence: the requested period overlaps with an existing Pending or Approved absence."
+            });
+        }
+
         const absence = await Absence.create({
             ...req.body,
             employee_id: targetEmployeeId,
@@ -153,6 +162,15 @@ const updateAbsence = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: "The selected period contains only holidays or weekends. No absence will be recorded."
+            });
+        }
+
+        // Overlap validation
+        const hasOverlap = await Absence.checkOverlap(employee_id, start_date, end_date, id);
+        if (hasOverlap) {
+            return res.status(400).json({
+                success: false,
+                message: "Cannot update absence: the requested period overlaps with another existing Pending or Approved absence."
             });
         }
         

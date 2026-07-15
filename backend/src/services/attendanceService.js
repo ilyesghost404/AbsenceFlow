@@ -4,8 +4,14 @@ const db = require("../config/database");
  * Normalize a date value (string or Date) to a 'YYYY-MM-DD' string.
  */
 function toDateString(val) {
+    if (!val) return '';
     if (typeof val === 'string') return val.split('T')[0];
-    if (val instanceof Date) return val.toISOString().split('T')[0];
+    if (val instanceof Date) {
+        const year = val.getFullYear();
+        const month = String(val.getMonth() + 1).padStart(2, '0');
+        const day = String(val.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
     return String(val);
 }
 
@@ -21,7 +27,7 @@ function countWorkingDays(startDate, endDate, holidays) {
         const dayOfWeek = d.getDay();
         // Check if it's not Saturday (6) or Sunday (0)
         if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-            const dateString = d.toISOString().split('T')[0];
+            const dateString = toDateString(d);
             // Check if it's not a holiday
             if (!holidaySet.has(dateString)) {
                 workingDays++;
@@ -62,7 +68,7 @@ async function getValidatedAbsenceDays(employeeId, startDate, endDate) {
         for (let d = new Date(absStart); d <= absEnd; d.setDate(d.getDate() + 1)) {
             const dayOfWeek = d.getDay();
             if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-                const dateString = d.toISOString().split('T')[0];
+                const dateString = toDateString(d);
                 if (!holidaySet.has(dateString)) {
                     absenceDays++;
                 }
@@ -89,6 +95,7 @@ async function calculateAttendance(employeeId, startDate, endDate) {
 }
 
 module.exports = {
+    toDateString,
     countWorkingDays,
     getHolidays,
     getValidatedAbsenceDays,

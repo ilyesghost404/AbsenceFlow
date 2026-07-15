@@ -10,24 +10,40 @@ const {
   checkOut,
   getTodayAttendance,
   getAnomalies,
-  validateAnomaly
+  validateAnomaly,
+  getEmployeeAttendanceByMonth
 } = require("../controllers/attendanceController");
 const { requireAuth, authorizeRoles } = require("../middleware/authMiddleware");
 
-// All attendance routes require authentication and are restricted to admin or manager roles
-router.use(requireAuth, authorizeRoles("admin", "manager"));
+// Helper middleware to check if user can access/modify their own employee data
+const canAccessOrModifySelf = (req, res, next) => {
+  const { employeeId } = req.params;
+  if (req.user.role === "admin" || req.user.role === "manager") {
+    return next();
+  }
+  if (req.user.role === "employee" && req.user.employee_id === parseInt(employeeId, 10)) {
+    return next();
+  }
+  return res.status(403).json({ success: false, message: "Access forbidden: you can only access or modify your own records" });
+};
 
-router.get("/anomalies", getAnomalies);
-router.put("/anomalies/:id/validate", validateAnomaly);
+// Manager or Admin only helper
+const requireManagerOrAdmin = [requireAuth, authorizeRoles("admin", "manager")];
 
-router.get("/", getAttendance);
-router.get("/today", getTodayAttendance);
-router.get("/:id", getAttendanceById);
-router.post("/", createAttendance);
-router.post("/check-in/:employeeId", checkIn);
-router.put("/:id", updateAttendance);
-router.put("/check-out/:employeeId", checkOut);
-router.delete("/:id", deleteAttendance);
+// Manager/Admin endpoints
+router.get("/anomalies", requireManagerOrAdmin, getAnomalies);
+router.put("/anomalies/:id/validate", requireManagerOrAdmin, validateAnomaly);
+router.get("/", requireManagerOrAdmin, getAttendance);
+router.get("/today", requireManagerOrAdmin, getTodayAttendance);
+router.get("/:id", requireManagerOrAdmin, getAttendanceById);
+router.post("/", requireManagerOrAdmin, createAttendance);
+router.put("/:id", requireManagerOrAdmin, updateAttendance);
+router.delete("/:id", requireManagerOrAdmin, deleteAttendance);
+
+// Self-access or Manager/Admin endpoints
+router.post("/check-in/:employeeId", requireAuth, canAccessOrModifySelf, checkIn);
+router.put("/check-out/:employeeId", requireAuth, canAccessOrModifySelf, checkOut);
+router.get("/:employeeId/:year/:month", requireAuth, canAccessOrModifySelf, getEmployeeAttendanceByMonth);
 
 module.exports = router;
 
