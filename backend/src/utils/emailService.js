@@ -162,11 +162,60 @@ const sendActivationEmail = async (userEmail, username, activationLink) => {
   return sendEmail(userEmail, "Activate Your AbsenceFlow Account", html);
 };
 
+const sendOtpEmail = async (userEmail, username, otpCode, expiryMinutes = 10) => {
+  const html = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; padding: 40px 0; margin: 0; color: #334155;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); padding: 32px 24px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">AbsenceFlow</h1>
+        </div>
+        
+        <!-- Content -->
+        <div style="padding: 40px 32px; text-align: center;">
+          <h2 style="color: #0f172a; margin-top: 0; font-size: 24px; font-weight: 600;">Reset Your Password</h2>
+          
+          <p style="font-size: 16px; line-height: 24px; color: #64748b; margin-bottom: 24px; text-align: left;">
+            Hello ${username},<br><br>
+            We received a request to reset your password for your AbsenceFlow account. Please use the verification code below to verify your identity and set a new password:
+          </p>
+          
+          <!-- OTP Box -->
+          <div style="background-color: #f1f5f9; border-radius: 12px; padding: 24px; margin: 32px 0; border: 1px dashed #cbd5e1;">
+            <span style="display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; color: #64748b; letter-spacing: 1.5px; margin-bottom: 8px;">Verification Code</span>
+            <span style="font-family: 'Courier New', Courier, monospace; font-size: 42px; font-weight: 800; color: #2563eb; letter-spacing: 6px;">${otpCode}</span>
+          </div>
+          
+          <p style="font-size: 14px; color: #d9534f; font-weight: 600; line-height: 20px; margin-bottom: 24px;">
+            ⚠️ This verification code is valid for ${expiryMinutes} minutes. For security reasons, do not share this code with anyone.
+          </p>
+          
+          <p style="font-size: 13px; color: #94a3b8; line-height: 20px; text-align: left; border-top: 1px solid #e2e8f0; padding-top: 24px;">
+            If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged and your account is secure.
+          </p>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background-color: #f1f5f9; padding: 24px; text-align: center; border-top: 1px solid #e2e8f0;">
+          <p style="margin: 0; font-size: 14px; color: #64748b;">
+            Need help? Contact your administrator.
+          </p>
+          <p style="margin: 8px 0 0 0; font-size: 12px; color: #94a3b8;">
+            &copy; ${new Date().getFullYear()} AbsenceFlow. All rights reserved.
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+  return sendEmail(userEmail, "AbsenceFlow Password Reset Code", html);
+};
+
 module.exports = {
   sendNewLoginEmail,
   sendPasswordResetEmail,
   sendPasswordChangedEmail,
   sendAccountLockedEmail,
   sendVerificationEmail,
-  sendActivationEmail
+  sendActivationEmail,
+  sendOtpEmail
 };

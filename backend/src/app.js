@@ -12,6 +12,7 @@ const holidayRoutes = require("./routes/holidayRoutes");
 const userRoutes = require("./routes/userRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 
@@ -90,6 +91,9 @@ app.use("/api/", apiLimiter);
 app.use("/api/users/login", authLimiter);
 app.use("/api/users/forgot-password", authLimiter);
 app.use("/api/users/reset-password", authLimiter);
+app.use("/api/auth/forgot-password", authLimiter);
+app.use("/api/auth/verify-reset-code", authLimiter);
+app.use("/api/auth/reset-password", authLimiter);
 
 
 // Test API route
@@ -124,6 +128,7 @@ app.get("/api/test-db", async (req, res) => {
 
 // User management and auth routes
 app.use("/api/users", userRoutes);
+app.use("/api/auth", authRoutes);
 
 // Dashboard routes
 app.use("/api/dashboard", dashboardRoutes);

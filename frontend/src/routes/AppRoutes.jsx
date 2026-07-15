@@ -4,6 +4,7 @@ import ProtectedRoute from './ProtectedRoute';
 import MainLayout from '../layouts/MainLayout';
 import Login from '../pages/Login';
 import ForgotPassword from '../pages/ForgotPassword';
+import VerifyResetCode from '../pages/VerifyResetCode';
 import ResetPassword from '../pages/ResetPassword';
 import VerifyEmail from '../pages/VerifyEmail';
 import ActivateAccount from '../pages/ActivateAccount';
@@ -44,6 +45,7 @@ const AppRoutes = () => {
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-reset-code" element={<VerifyResetCode />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/activate-account" element={<ActivateAccount />} />

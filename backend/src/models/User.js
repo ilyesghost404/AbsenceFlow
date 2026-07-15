@@ -331,6 +331,46 @@ class User {
       DELETE FROM email_verification_tokens WHERE id = $1
     `, [tokenId]);
   }
+
+  // --- OTP Forgot Password Methods ---
+
+  static async savePasswordResetCode(userId, code, expiresAt) {
+    await db.query(`
+      UPDATE users
+      SET reset_password_code = $1, reset_password_code_expiry = $2, reset_password_verified = FALSE, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $3
+    `, [code, expiresAt, userId]);
+  }
+
+  static async getPasswordResetCodeInfo(email) {
+    const result = await db.query(`
+      SELECT id, username, email, reset_password_code, reset_password_code_expiry, reset_password_verified, is_active
+      FROM users
+      WHERE email = $1
+    `, [email]);
+    return result.rows[0];
+  }
+
+  static async setPasswordResetCodeVerified(userId, verified) {
+    await db.query(`
+      UPDATE users
+      SET reset_password_verified = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+    `, [verified, userId]);
+  }
+
+  static async resetPasswordWithCode(userId, passwordHash) {
+    await db.query(`
+      UPDATE users
+      SET password_hash = $1,
+          reset_password_code = NULL,
+          reset_password_code_expiry = NULL,
+          reset_password_verified = FALSE,
+          password_changed_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+    `, [passwordHash, userId]);
+  }
 }
 
 module.exports = User;

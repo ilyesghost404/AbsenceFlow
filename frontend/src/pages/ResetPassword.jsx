@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Lock, Eye, EyeOff, Loader2, CheckCircle2, ShieldCheck, AlertCircle } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Lock, Eye, EyeOff, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react';
 import api from '../services/api';
+import toast from 'react-hot-toast';
 
 const ResetPassword = () => {
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const email = location.state?.email || '';
   
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -13,7 +15,14 @@ const ResetPassword = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
+
+  // Redirect if email is not present
+  useEffect(() => {
+    if (!email) {
+      toast.error('Session expired. Please request a new code.');
+      navigate('/forgot-password');
+    }
+  }, [email, navigate]);
 
   // Password strength logic
   const [strength, setStrength] = useState({ score: 0, label: 'Weak', color: 'bg-red-500' });
@@ -41,8 +50,8 @@ const ResetPassword = () => {
     e.preventDefault();
     setError('');
 
-    if (!token) {
-      setError('Invalid or missing reset token.');
+    if (!email) {
+      setError('Invalid or missing email.');
       return;
     }
     
@@ -59,10 +68,9 @@ const ResetPassword = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await api.post('/users/reset-password', { token, newPassword });
-      if (response.data.success) {
-        setSuccess(true);
-      }
+      await api.post('/auth/reset-password', { email, newPassword });
+      toast.success('Password reset successfully!');
+      setSuccess(true);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to reset password.');
     } finally {
@@ -70,19 +78,8 @@ const ResetPassword = () => {
     }
   };
 
-  if (!token && !success) {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-slate-900 py-12 px-4">
-        <div className="max-w-md w-full bg-slate-800 rounded-2xl p-8 text-center shadow-xl border border-slate-700">
-          <AlertCircle className="mx-auto text-red-500 mb-4" size={48} />
-          <h2 className="text-2xl font-bold text-white mb-2">Invalid Link</h2>
-          <p className="text-slate-400 mb-6">This password reset link is invalid or missing.</p>
-          <button onClick={() => navigate('/login')} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold">
-            Back to Login
-          </button>
-        </div>
-      </div>
-    );
+  if (!email && !success) {
+    return null;
   }
 
   return (
