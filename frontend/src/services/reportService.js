@@ -63,7 +63,7 @@ export const exportToExcel = async (filters = {}) => {
     localStorage.getItem('token') || sessionStorage.getItem('token');
 
   const response = await fetch(
-    `http://localhost:5000/api/reports/export/excel?${params}`,
+    `http://${window.location.hostname}:5000/api/reports/export/excel?${params}`,
     {
       headers: {
         Authorization: token ? `Bearer ${token}` : '',
@@ -85,6 +85,12 @@ export const exportToExcel = async (filters = {}) => {
   a.click();
   a.remove();
   window.URL.revokeObjectURL(url);
+};
+
+// Get monthly attendance matrix report data
+export const getAttendanceMatrix = async (year, month) => {
+  const response = await api.get(`/reports/attendance-matrix?year=${year}&month=${month}`);
+  return response.data.data;
 };
 
 // Print current report view

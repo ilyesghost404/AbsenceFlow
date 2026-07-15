@@ -1,17 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { 
-  FileSpreadsheet, 
-  FileText, 
-  Printer, 
-  RefreshCw, 
-  Users, 
-  CalendarOff, 
-  Clock, 
-  CheckCircle2, 
-  Calendar, 
-  TrendingUp, 
-  BarChart3, 
+import {
+  FileSpreadsheet,
+  FileText,
+  Printer,
+  RefreshCw,
+  Users,
+  CalendarOff,
+  Clock,
+  CheckCircle2,
+  Calendar,
+  TrendingUp,
+  BarChart3,
   PieChart,
   Search,
   Filter
@@ -31,7 +31,8 @@ import {
   getEmployeeRanking,
   getDetailedAbsences,
   exportToExcel,
-  printReport
+  printReport,
+  getAttendanceMatrix
 } from '../services/reportService';
 import { getEmployees } from '../services/employeeService';
 import {
@@ -82,6 +83,27 @@ const Reports = () => {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [matrixYear, setMatrixYear] = useState(new Date().getFullYear());
+  const [matrixMonth, setMatrixMonth] = useState(new Date().getMonth() + 1);
+  const [matrixData, setMatrixData] = useState(null);
+  const [matrixLoading, setMatrixLoading] = useState(false);
+
+  const fetchMatrixData = useCallback(async () => {
+    try {
+      setMatrixLoading(true);
+      const data = await getAttendanceMatrix(matrixYear, matrixMonth);
+      setMatrixData(data);
+    } catch (error) {
+      console.error('Error fetching attendance matrix:', error);
+      toast.error('Failed to load attendance matrix data');
+    } finally {
+      setMatrixLoading(false);
+    }
+  }, [matrixYear, matrixMonth]);
+
+  useEffect(() => {
+    fetchMatrixData();
+  }, [fetchMatrixData]);
 
   const COLORS = ['#2563eb', '#7c3aed', '#22c55e', '#f59e0b', '#ef4444'];
 
@@ -195,8 +217,16 @@ const Reports = () => {
       default:
         return 'bg-amber-100 text-amber-700';
     }
-  };
 
+  };
+  const formatMatrixDay = (day) => {
+    const date = new Date(matrixYear, matrixMonth - 1, day);
+
+    return {
+      number: String(day).padStart(2, '0'),
+      weekday: date.toLocaleDateString('en-US', { weekday: 'short' })
+    };
+  };
   return (
     <div className="min-h-screen print:bg-white print:p-0">
       <div className="mb-8 print:hidden">
@@ -206,29 +236,29 @@ const Reports = () => {
             <p className="text-slate-500">HR Analytics and Reporting Center</p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Button 
-              variant="secondary" 
+            <Button
+              variant="secondary"
               icon={FileText}
               onClick={() => toast.info('PDF export coming soon')}
             >
               Export PDF
             </Button>
-            <Button 
-              variant="secondary" 
+            <Button
+              variant="secondary"
               icon={FileSpreadsheet}
               onClick={handleExportExcel}
               loading={exporting}
             >
               Export Excel
             </Button>
-            <Button 
-              variant="secondary" 
+            <Button
+              variant="secondary"
               icon={Printer}
               onClick={handlePrint}
             >
               Print
             </Button>
-            <Button 
+            <Button
               icon={RefreshCw}
               onClick={fetchAllData}
               loading={loading}
@@ -248,26 +278,26 @@ const Reports = () => {
         <>
           {stats && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
-              <StatsCard 
-                title="Total Absences" 
-                value={stats.totalAbsences} 
-                icon={CalendarOff} 
-                colorClass="text-blue-600" 
-                bgClass="bg-blue-50" 
+              <StatsCard
+                title="Total Absences"
+                value={stats.totalAbsences}
+                icon={CalendarOff}
+                colorClass="text-blue-600"
+                bgClass="bg-blue-50"
               />
-              <StatsCard 
-                title="Absence Rate" 
-                value={`${stats.absenceRate}%`} 
-                icon={TrendingUp} 
-                colorClass="text-purple-600" 
-                bgClass="bg-purple-50" 
+              <StatsCard
+                title="Absence Rate"
+                value={`${stats.absenceRate}%`}
+                icon={TrendingUp}
+                colorClass="text-purple-600"
+                bgClass="bg-purple-50"
               />
-              <StatsCard 
-                title="Pending Requests" 
-                value={stats.pendingRequests} 
-                icon={Clock} 
-                colorClass="text-amber-600" 
-                bgClass="bg-amber-50" 
+              <StatsCard
+                title="Pending Requests"
+                value={stats.pendingRequests}
+                icon={Clock}
+                colorClass="text-amber-600"
+                bgClass="bg-amber-50"
               />
             </div>
           )}
@@ -285,18 +315,18 @@ const Reports = () => {
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                       <XAxis dataKey="month" stroke="#64748b" />
                       <YAxis stroke="#64748b" />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'white', 
-                          border: '1px solid #e2e8f0', 
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'white',
+                          border: '1px solid #e2e8f0',
                           borderRadius: '12px',
                           boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)'
-                        }} 
+                        }}
                       />
-                      <Line 
-                        type="monotone" 
-                        dataKey="count" 
-                        stroke="#2563eb" 
+                      <Line
+                        type="monotone"
+                        dataKey="count"
+                        stroke="#2563eb"
                         strokeWidth={4}
                         dot={{ r: 6, fill: '#2563eb', strokeWidth: 2, stroke: '#dbeafe' }}
                         activeDot={{ r: 8 }}
@@ -323,19 +353,19 @@ const Reports = () => {
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                       <XAxis dataKey="name" stroke="#64748b" />
                       <YAxis stroke="#64748b" />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'white', 
-                          border: '1px solid #e2e8f0', 
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'white',
+                          border: '1px solid #e2e8f0',
                           borderRadius: '12px',
                           boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)'
-                        }} 
+                        }}
                       />
                       <Bar dataKey="absences" radius={[10, 10, 0, 0]}>
                         {departmentData.map((entry, index) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={COLORS[index % COLORS.length]} 
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
                           />
                         ))}
                       </Bar>
@@ -370,19 +400,19 @@ const Reports = () => {
                         dataKey="value"
                       >
                         {typeData.map((entry, index) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={COLORS[index % COLORS.length]} 
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
                           />
                         ))}
                       </Pie>
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'white', 
-                          border: '1px solid #e2e8f0', 
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'white',
+                          border: '1px solid #e2e8f0',
                           borderRadius: '12px',
                           boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)'
-                        }} 
+                        }}
                       />
                       <Legend />
                     </RechartsPieChart>
@@ -403,7 +433,7 @@ const Reports = () => {
               <div className="space-y-4">
                 {rankingData.length > 0 ? (
                   rankingData.slice(0, 5).map((emp, index) => (
-                    <div 
+                    <div
                       key={emp.matricule}
                       className="flex items-center justify-between p-4 bg-slate-50 rounded-xl"
                     >
@@ -495,87 +525,143 @@ const Reports = () => {
             </Card>
           </div>
 
-          <Card className="overflow-hidden">
-            <div className="p-6 border-b border-slate-100">
-              <h3 className="text-xl font-bold text-slate-800">Detailed Absence Records</h3>
+          <Card className="overflow-hidden shadow-sm border border-slate-100 rounded-3xl mb-8">
+            <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+              <div>
+                <h3 className="text-xl font-bold text-slate-800">Monthly Attendance Matrix</h3>
+                <p className="text-sm text-slate-500 mt-1">HR payroll attendance sheet matrix view</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <select
+                  value={matrixYear}
+                  onChange={(e) => setMatrixYear(parseInt(e.target.value))}
+                  className="px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-semibold bg-white text-slate-700"
+                >
+                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={matrixMonth}
+                  onChange={(e) => setMatrixMonth(parseInt(e.target.value))}
+                  className="px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-semibold bg-white text-slate-700"
+                >
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <option key={i + 1} value={i + 1}>
+                      {new Date(0, i).toLocaleString('default', { month: 'long' })}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="overflow-x-auto">
-              {detailedData.length > 0 ? (
-                <Table
-                  data={detailedData}
-                  columns={[
-                    {
-                      header: 'Employee',
-                      key: 'employee',
-                      render: (absence) => (
-                        <>
-                          <div className="font-semibold text-slate-800">{absence.employee_name}</div>
-                          <div className="text-sm text-slate-500">{absence.matricule}</div>
-                        </>
-                      ),
-                    },
-                    {
-                      header: 'Department',
-                      key: 'department',
-                      render: (absence) => (
-                        <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium">
-                          {absence.department}
-                        </span>
-                      ),
-                    },
-                    {
-                      header: 'Type',
-                      key: 'type',
-                      cellClassName: 'text-slate-700',
-                    },
-                    {
-                      header: 'Start Date',
-                      key: 'start_date',
-                      cellClassName: 'text-slate-700',
-                      render: (absence) => parseLocalDate(absence.start_date)?.toLocaleDateString() ?? '—',
-                    },
-                    {
-                      header: 'End Date',
-                      key: 'end_date',
-                      cellClassName: 'text-slate-700',
-                      render: (absence) => parseLocalDate(absence.end_date)?.toLocaleDateString() ?? '—',
-                    },
-                    {
-                      header: 'Duration',
-                      key: 'duration',
-                      cellClassName: 'font-semibold text-slate-700',
-                      render: (absence) => `${absence.duration}d`,
-                    },
-                    {
-                      header: 'Status',
-                      key: 'status',
-                      render: (absence) => (
-                        <span className={`px-3 py-1 rounded-xl text-xs font-semibold ${getStatusBadgeClass(absence.status)}`}>
-                          {absence.status}
-                        </span>
-                      ),
-                    },
-                  ]}
-                />
+
+            <div className="overflow-x-auto overflow-y-auto max-h-[600px] relative">
+              {matrixLoading ? (
+                <div className="py-20 flex flex-col items-center justify-center">
+                  <LoadingSpinner size="md" />
+                  <p className="text-slate-500 mt-4 text-sm font-semibold">Loading matrix data...</p>
+                </div>
+              ) : matrixData && matrixData.matrix ? (
+                <table className="min-w-full border-collapse bg-white text-left text-sm text-slate-500">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th scope="col" className="sticky left-0 top-0 z-30 bg-slate-50 px-6 py-4 font-bold text-slate-800 border-r border-b border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] min-w-[200px]">
+                        Employee
+                      </th>
+                      <th scope="col" className="sticky top-0 z-20 bg-slate-50 px-4 py-4 font-bold text-slate-800 border-b border-slate-200">
+                        Matricule
+                      </th>
+                      <th scope="col" className="sticky top-0 z-20 bg-slate-50 px-4 py-4 font-bold text-slate-800 border-b border-slate-200">
+                        Department
+                      </th>
+                      {Array.from({ length: matrixData.totalDays }, (_, i) => i + 1).map((day) => {
+                        const date = new Date(matrixYear, matrixMonth - 1, day);
+                        const dayName = date.toLocaleString('en-US', { weekday: 'short' });
+                        const formattedDate = `${String(day).padStart(2, '0')} ${dayName}`;
+
+                        return (
+                          <th
+                            key={day}
+                            scope="col"
+                            className="sticky top-0 z-20 bg-slate-50 px-2 py-4 font-bold text-slate-700 text-center border-b border-slate-200 min-w-[70px] text-xs whitespace-nowrap"
+                          >
+                            {formattedDate}
+                          </th>
+                        );
+                      })}
+                      <th scope="col" className="sticky right-0 top-0 z-30 bg-slate-100 px-4 py-4 font-bold text-slate-800 border-l border-b border-slate-200 text-center shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] min-w-[120px]">
+                        Total Worked
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {matrixData.matrix.map((row) => (
+                      <tr key={row.employee_id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="sticky left-0 bg-white z-10 px-6 py-4 font-bold text-slate-800 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] min-w-[200px] hover:bg-slate-50">
+                          {row.name}
+                        </td>
+                        <td className="px-4 py-4 text-slate-600 font-medium">
+                          {row.matricule}
+                        </td>
+                        <td className="px-4 py-4 text-slate-500 font-medium truncate max-w-[150px]" title={row.department}>
+                          {row.department}
+                        </td>
+                        {row.dailyStatus.map((dayStatus, idx) => {
+                          let cellBg = '';
+                          let cellText = 'text-slate-700';
+
+                          if (dayStatus.status === 'weekend') {
+                            cellBg = 'bg-slate-100/60';
+                            cellText = 'text-slate-400';
+                          } else if (dayStatus.status === 'holiday') {
+                            cellBg = 'bg-slate-100';
+                            cellText = 'text-slate-500 font-bold';
+                          } else if (dayStatus.status === 'absent') {
+                            cellBg = 'bg-red-50';
+                            cellText = 'text-red-600 font-bold';
+                          } else if (dayStatus.status === 'present') {
+                            cellText = 'text-emerald-600 font-bold text-base';
+                          } else if (dayStatus.status === 'future') {
+                            cellBg = 'bg-slate-50/30';
+                            cellText = 'text-transparent select-none';
+                          }
+
+                          return (
+                            <td
+                              key={idx}
+                              className={`px-1 py-4 text-center border-r border-slate-100 ${cellBg} ${cellText}`}
+                              title={dayStatus.hoverText}
+                            >
+                              {dayStatus.label}
+                            </td>
+                          );
+                        })}
+                        <td className="sticky right-0 bg-slate-50/90 z-10 px-4 py-4 font-bold text-slate-800 text-center border-l border-slate-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] min-w-[120px] hover:bg-slate-100">
+                          {row.totalWorkedDays}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               ) : (
-                <div className="py-20 text-center">
-                  <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FileSpreadsheet className="text-slate-400" size={40} />
-                  </div>
-                  <h3 className="text-lg font-semibold text-slate-800 mb-1">No records found</h3>
-                  <p className="text-slate-500">Try adjusting your filters</p>
+                <div className="py-20 text-center text-slate-400 font-semibold">
+                  No attendance matrix data loaded.
                 </div>
               )}
             </div>
-            {pagination && (
-              <Pagination 
-                page={pagination.page} 
-                limit={pagination.limit} 
-                total={pagination.total} 
-                totalPages={pagination.totalPages} 
-                onPageChange={(newPage) => handleFilterChange('page', newPage)} 
-              />
-            )}
+
+            <div className="p-5 border-t border-slate-100 bg-slate-50/50 flex flex-wrap gap-x-6 gap-y-3 text-xs font-semibold text-slate-500 select-none">
+              <span className="flex items-center gap-1.5"><span className="text-emerald-600 font-bold text-base">✓</span> Present / Late</span>
+              <span className="flex items-center gap-1.5"><span className="px-1.5 py-0.5 bg-red-50 text-red-600 rounded border border-red-100 font-bold">A</span> Unexcused Absence</span>
+              <span className="flex items-center gap-1.5"><span className="px-1.5 py-0.5 bg-red-50 text-red-600 rounded border border-red-100 font-bold">V</span> Vacation</span>
+              <span className="flex items-center gap-1.5"><span className="px-1.5 py-0.5 bg-red-50 text-red-600 rounded border border-red-100 font-bold">S</span> Sick Leave</span>
+              <span className="flex items-center gap-1.5"><span className="px-1.5 py-0.5 bg-red-50 text-red-600 rounded border border-red-100 font-bold">T</span> Training</span>
+              <span className="flex items-center gap-1.5"><span className="px-1.5 py-0.5 bg-red-50 text-red-600 rounded border border-red-100 font-bold">O</span> Other Leave</span>
+              <span className="flex items-center gap-1.5"><span className="px-1.5 py-0.5 bg-red-50 text-red-600 rounded border border-red-100 font-bold">J</span> Justified Absence</span>
+              <span className="flex items-center gap-1.5"><span className="w-5 h-5 bg-slate-100 rounded inline-block text-center text-slate-500 pt-0.5 font-bold">H</span> Holiday</span>
+              <span className="flex items-center gap-1.5"><span className="w-5 h-5 bg-slate-100/60 rounded inline-block text-center text-slate-400 pt-0.5">W</span> Weekend</span>
+            </div>
           </Card>
         </>
       )}

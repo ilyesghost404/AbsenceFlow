@@ -8,7 +8,8 @@ const {
     getEmployeeRanking,
     getDetailedAbsences,
     exportToExcel,
-    getMonthlyReport
+    getMonthlyReport,
+    getAttendanceMatrix
 } = require("../controllers/reportController");
 const { requireAuth, authorizeRoles } = require("../middleware/authMiddleware");
 
@@ -21,6 +22,7 @@ router.get("/departments", getDepartmentStats);
 router.get("/types", getAbsenceTypes);
 router.get("/ranking", getEmployeeRanking);
 router.get("/detailed", getDetailedAbsences);
+router.get("/attendance-matrix", getAttendanceMatrix);
 router.get("/export/excel", exportToExcel);
 router.get("/:year/:month", getMonthlyReport);
 

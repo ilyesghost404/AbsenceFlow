@@ -365,22 +365,19 @@ const exportToExcel = async (req, res) => {
             month
         } = req.query;
 
-        let queryParams = {
-            startDate,
-            endDate,
-            department,
-            status,
-            type
-        };
-
+        let workbook;
         if (year && month) {
-            const firstDay = new Date(parseInt(year), parseInt(month) - 1, 1);
-            const lastDay = new Date(parseInt(year), parseInt(month), 0);
-            queryParams.startDate = toDateString(firstDay);
-            queryParams.endDate = toDateString(lastDay);
+            workbook = await reportService.generateMonthlyMatrixReport(year, month);
+        } else {
+            let queryParams = {
+                startDate,
+                endDate,
+                department,
+                status,
+                type
+            };
+            workbook = await reportService.generateCustomReport(queryParams);
         }
-
-        const workbook = await reportService.generateCustomReport(queryParams);
         
         const fileName = `AbsenceFlow_Report_${toDateString(new Date())}.xlsx`;
         res.setHeader(
@@ -440,6 +437,176 @@ const getMonthlyReport = async (req, res) => {
     }
 };
 
+const getAttendanceMatrix = async (req, res) => {
+    try {
+        const { year, month } = req.query;
+        const parsedYear = parseInt(year) || new Date().getFullYear();
+        const parsedMonth = parseInt(month) || (new Date().getMonth() + 1);
+
+        const startDate = new Date(parsedYear, parsedMonth - 1, 1);
+        const endDate = new Date(parsedYear, parsedMonth, 0);
+        const totalDays = endDate.getDate();
+
+        // 1. Fetch all active employees
+        const employeesResult = await db.query(
+            "SELECT id, matricule, first_name, last_name, department FROM employees ORDER BY matricule"
+        );
+        const employees = employeesResult.rows;
+
+        // 2. Fetch all holidays in this month range
+        const holidaysResult = await db.query(
+            "SELECT holiday_date, name FROM holidays WHERE holiday_date BETWEEN $1 AND $2",
+            [startDate, endDate]
+        );
+        const holidays = holidaysResult.rows;
+        const holidayMap = {};
+        holidays.forEach(h => {
+            const dateStr = toDateString(h.holiday_date);
+            holidayMap[dateStr] = h.name;
+        });
+
+        // 3. Fetch all validated absences for this month range
+        const absencesResult = await db.query(
+            `SELECT employee_id, type, start_date, end_date 
+             FROM absences 
+             WHERE status = 'Validated' 
+             AND start_date <= $2 
+             AND end_date >= $1`,
+            [startDate, endDate]
+        );
+        const absences = absencesResult.rows;
+
+        // 4. Fetch all attendance logs for this month range
+        const attendanceResult = await db.query(
+            "SELECT employee_id, date, status, validation_status, justification_reason FROM attendance WHERE date BETWEEN $1 AND $2",
+            [startDate, endDate]
+        );
+        const attendanceList = attendanceResult.rows;
+
+        // Build a mapping for fast lookups
+        const attendanceMap = {};
+        attendanceList.forEach(a => {
+            const dateStr = toDateString(a.date);
+            if (!attendanceMap[a.employee_id]) {
+                attendanceMap[a.employee_id] = {};
+            }
+            attendanceMap[a.employee_id][dateStr] = {
+                status: a.status,
+                validationStatus: a.validation_status,
+                justificationReason: a.justification_reason
+            };
+        });
+
+        const todayStr = toDateString(new Date());
+
+        const matrix = employees.map(emp => {
+            const dailyStatus = [];
+            let totalWorkedDays = 0;
+
+            for (let day = 1; day <= totalDays; day++) {
+                const date = new Date(parsedYear, parsedMonth - 1, day);
+                const dateStr = toDateString(date);
+                const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+
+                let cell = {
+                    day,
+                    date: dateStr,
+                    status: 'present',
+                    label: '✓',
+                    hoverText: 'Present'
+                };
+
+                // Check Weekend
+                if (dayOfWeek === 0 || dayOfWeek === 6) {
+                    cell.status = 'weekend';
+                    cell.label = '';
+                    cell.hoverText = 'Weekend';
+                }
+                // Check Holiday
+                else if (holidayMap[dateStr]) {
+                    cell.status = 'holiday';
+                    cell.label = '';
+                    cell.hoverText = `Holiday: ${holidayMap[dateStr]}`;
+                }
+                // Check Validated Absence
+                else {
+                    const matchedAbsence = absences.find(abs => 
+                        abs.employee_id === emp.id && 
+                        new Date(abs.start_date) <= date && 
+                        new Date(abs.end_date) >= date
+                    );
+
+                    if (matchedAbsence) {
+                        cell.status = 'absent';
+                        cell.label = matchedAbsence.type === 'Sick Leave' ? 'S' : matchedAbsence.type === 'Vacation' ? 'V' : matchedAbsence.type === 'Training' ? 'T' : 'O';
+                        cell.hoverText = matchedAbsence.type;
+                    }
+                    // Check Future Date
+                    else if (dateStr > todayStr) {
+                        cell.status = 'future';
+                        cell.label = '';
+                        cell.hoverText = 'Future Date';
+                    }
+                    // Check Attendance Logs
+                    else {
+                        const att = attendanceMap[emp.id]?.[dateStr];
+                        if (att) {
+                            if (att.status === 'Present' || att.status === 'Late') {
+                                cell.status = 'present';
+                                cell.label = '✓';
+                                cell.hoverText = att.status;
+                                totalWorkedDays++;
+                            } else {
+                                if (att.validationStatus === 'Justified') {
+                                    cell.status = 'absent';
+                                    cell.label = 'J';
+                                    cell.hoverText = `Justified: ${att.justificationReason || 'Excused'}`;
+                                } else {
+                                    cell.status = 'absent';
+                                    cell.label = 'A';
+                                    cell.hoverText = 'Unexcused Absence';
+                                }
+                            }
+                        } else {
+                            // Default to unexcused absence for past weekdays with no check-in
+                            cell.status = 'absent';
+                            cell.label = 'A';
+                            cell.hoverText = 'Unexcused Absence';
+                        }
+                    }
+                }
+
+                dailyStatus.push(cell);
+            }
+
+            return {
+                employee_id: emp.id,
+                matricule: emp.matricule,
+                name: `${emp.first_name} ${emp.last_name}`,
+                department: emp.department || '—',
+                dailyStatus,
+                totalWorkedDays
+            };
+        });
+
+        res.json({
+            success: true,
+            data: {
+                year: parsedYear,
+                month: parsedMonth,
+                totalDays,
+                matrix
+            }
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to load attendance matrix report"
+        });
+    }
+};
+
 module.exports = {
     getReportStats,
     getMonthlyAbsenceEvolution,
@@ -448,5 +615,6 @@ module.exports = {
     getEmployeeRanking,
     getDetailedAbsences,
     exportToExcel,
-    getMonthlyReport
+    getMonthlyReport,
+    getAttendanceMatrix
 };
