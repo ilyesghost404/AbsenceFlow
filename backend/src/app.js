@@ -19,8 +19,12 @@ const app = express();
 app.use(helmet()); // Sets various HTTP headers for security
 
 // CORS Configuration
+const allowedOrigin = process.env.NODE_ENV === "production"
+  ? (process.env.FRONTEND_URL || "http://localhost:5173")
+  : true;
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  origin: allowedOrigin,
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
