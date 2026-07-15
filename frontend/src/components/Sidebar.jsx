@@ -54,13 +54,6 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const menuItems = getMenuItems();
 
-  useEffect(() => {
-    // Only auto-close sidebar on mobile when navigating
-    if (window.innerWidth < 1024) {
-      onClose?.();
-    }
-  }, [location.pathname]);
-
   const getRoleLabel = (role) => {
     if (role === 'admin') return 'Administrator';
     if (role === 'manager') return 'Manager';
@@ -165,6 +158,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <Link
                   key={item.path}
                   to={item.path}
+                  onClick={onClose}
                   className={`
                     flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group
                     ${isActive
@@ -184,6 +178,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             <div className="space-y-2">
               <Link
                 to="/settings"
+                onClick={onClose}
                 className="flex items-center justify-between px-4 py-3.5 rounded-2xl bg-white/5 border border-white/5 text-slate-300 hover:bg-white/10 hover:text-white hover:shadow-lg transition-all duration-300 group"
               >
                 <div className="flex items-center gap-3">

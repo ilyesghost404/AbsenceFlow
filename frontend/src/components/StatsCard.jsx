@@ -8,8 +8,8 @@ const StatsCard = ({ title, value, subtitle, trend, icon: Icon, colorClass, bgCl
   const finalBorderClass = borderClass || defaultBorderClass;
 
   return (
-    <Card hover className={`border-t-4 ${finalBorderClass} relative overflow-hidden`}>
-      <div className="flex items-start justify-between relative z-10">
+    <Card hover noPadding className={`border-t-4 ${finalBorderClass} relative overflow-hidden`}>
+      <div className="p-6 md:p-8 flex items-start justify-between relative z-10">
         <div className="w-full">
           <p className="text-slate-500 text-sm font-bold uppercase tracking-wider">{title}</p>
           <div className="flex items-baseline gap-2 mt-2">

@@ -176,55 +176,59 @@ const EmployeeAttendanceView = () => {
       </div>
 
       {/* Dashboard Actions and Status Card */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
         {/* Today's Action Bubble */}
-        <Card className="lg:col-span-5 flex flex-col justify-between p-6">
-          <div>
-            <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
-              <Clock className="text-blue-600" size={20} />
-              Today's Session
-            </h3>
-            <p className="text-slate-400 text-xs mb-6">
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-            </p>
+        <Card noPadding className="lg:col-span-5 flex flex-col justify-between border-slate-200 shadow-sm">
+          <div className="p-5 sm:p-6 flex-1 flex flex-col justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
+                <Clock className="text-blue-600" size={20} />
+                Today's Session
+              </h3>
+              <p className="text-slate-400 text-xs mb-6">
+                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+              </p>
 
-            <div className="flex items-center justify-between mb-8 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-              <div className="flex items-center gap-3">
-                <span className={`w-3 h-3 rounded-full ${statusInfo.dotColor} ${statusInfo.label === 'Checked In' ? 'animate-pulse' : ''}`} />
-                <span className="font-bold text-slate-800">{statusInfo.label}</span>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-slate-400 font-medium">Logged Check-In</p>
-                <p className="font-mono text-slate-800 font-bold">{todayRecord?.check_in ? formatTime(todayRecord.check_in) : '—'}</p>
+              <div className="flex items-center justify-between mb-6 sm:mb-8 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                <div className="flex items-center gap-3">
+                  <span className={`w-3 h-3 rounded-full ${statusInfo.dotColor} ${statusInfo.label === 'Checked In' ? 'animate-pulse' : ''}`} />
+                  <span className="font-bold text-slate-800">{statusInfo.label}</span>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-slate-400 font-medium">Logged Check-In</p>
+                  <p className="font-mono text-slate-800 font-bold">{todayRecord?.check_in ? formatTime(todayRecord.check_in) : '—'}</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex gap-3">
-            {!todayRecord?.check_in ? (
-              <Button
-                onClick={handleCheckIn}
-                disabled={actionLoading}
-                className="flex-1 justify-center py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-all shadow-md shadow-emerald-500/20 hover:shadow-emerald-500/35"
-                icon={LogIn}
-              >
-                {actionLoading ? 'Loading...' : 'Check In'}
-              </Button>
-            ) : !todayRecord.check_out ? (
-              <Button
-                onClick={handleCheckOut}
-                disabled={actionLoading}
-                className="flex-1 justify-center py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-md shadow-blue-500/20 hover:shadow-blue-500/35"
-                icon={LogOut}
-              >
-                {actionLoading ? 'Loading...' : 'Check Out'}
-              </Button>
-            ) : (
-              <div className="w-full flex items-center justify-center gap-2 p-3 bg-slate-100 text-slate-500 font-bold rounded-xl border border-slate-200 cursor-default">
-                <CheckCircle2 size={16} />
-                Shift Completed
-              </div>
-            )}
+            <div className="w-full">
+              {!todayRecord?.check_in ? (
+                <Button
+                  onClick={handleCheckIn}
+                  disabled={actionLoading}
+                  variant="success"
+                  className="w-full justify-center py-3 font-bold rounded-xl transition-all shadow-md shadow-emerald-500/20 hover:shadow-emerald-500/35"
+                  icon={LogIn}
+                >
+                  {actionLoading ? 'Loading...' : 'Check In'}
+                </Button>
+              ) : !todayRecord.check_out ? (
+                <Button
+                  onClick={handleCheckOut}
+                  disabled={actionLoading}
+                  variant="primary"
+                  className="w-full justify-center py-3 font-bold rounded-xl transition-all shadow-md shadow-blue-500/20 hover:shadow-blue-500/35"
+                  icon={LogOut}
+                >
+                  {actionLoading ? 'Loading...' : 'Check Out'}
+                </Button>
+              ) : (
+                <div className="w-full flex items-center justify-center gap-2 p-3 bg-slate-100 text-slate-500 font-bold rounded-xl border border-slate-200 cursor-default">
+                  <CheckCircle2 size={16} />
+                  Shift Completed
+                </div>
+              )}
+            </div>
           </div>
         </Card>
 

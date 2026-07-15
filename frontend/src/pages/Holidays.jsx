@@ -581,7 +581,7 @@ const Holidays = () => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-1">Date <span className="text-red-500">*</span></label>
               <input

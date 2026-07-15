@@ -13,7 +13,7 @@ const Table = ({ columns, data, className = '', emptyMessage = 'No data availabl
             {columns.map((column, index) => (
               <th
                 key={index}
-                className="px-8 py-5 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap"
+                className="px-4 sm:px-8 py-4 sm:py-5 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap"
               >
                 {column.header}
               </th>
@@ -24,7 +24,7 @@ const Table = ({ columns, data, className = '', emptyMessage = 'No data availabl
           {data.map((row, rowIndex) => (
             <tr key={rowIndex} className="hover:bg-slate-50/60 transition-colors duration-200 group">
               {columns.map((column, colIndex) => (
-                <td key={colIndex} className={`px-8 py-5 text-sm text-slate-700 ${column.cellClassName || 'whitespace-nowrap'} group-hover:text-slate-900`}>
+                <td key={colIndex} className={`px-4 sm:px-8 py-4 sm:py-5 text-sm text-slate-700 ${column.cellClassName || 'whitespace-nowrap'} group-hover:text-slate-900`}>
                   {column.render ? column.render(row) : row[column.key]}
                 </td>
               ))}

@@ -14,7 +14,7 @@ class ErrorBoundary extends Component {
   }
   componentDidCatch(error, errorInfo) {
     console.error("React Error:", error, errorInfo);
-    fetch('http://localhost:5000/api/log-error', {
+    fetch(`http://${window.location.hostname}:5000/api/log-error`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ error: error.toString(), stack: error.stack, info: errorInfo.componentStack })
@@ -46,3 +46,16 @@ createRoot(document.getElementById('root')).render(
     </ErrorBoundary>
   </StrictMode>,
 )
+
+// Register PWA service worker (Temporarily commented out)
+/*
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then(reg => {
+      console.log('ServiceWorker registered successfully: ', reg.scope);
+    }).catch(err => {
+      console.log('ServiceWorker registration failed: ', err);
+    });
+  });
+}
+*/
