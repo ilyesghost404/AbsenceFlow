@@ -14,9 +14,9 @@ router.use(requireAuth);
 
 router.get("/", getHolidays);
 router.get("/:id", getHolidayById);
-router.post("/", authorizeRoles("admin", "manager"), createHoliday);
-router.put("/:id", authorizeRoles("admin", "manager"), updateHoliday);
-router.delete("/:id", authorizeRoles("admin", "manager"), deleteHoliday);
+router.post("/", authorizeRoles("manager"), createHoliday);
+router.put("/:id", authorizeRoles("manager"), updateHoliday);
+router.delete("/:id", authorizeRoles("manager"), deleteHoliday);
 
 module.exports = router;
 

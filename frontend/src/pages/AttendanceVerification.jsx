@@ -100,15 +100,27 @@ const AttendanceVerification = () => {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Page Header */}
-      <div>
-        <div className="flex items-center gap-3">
-          <QrCode className="text-blue-600" size={28} />
-          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Attendance Verification Portal</h1>
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 animate-fade-in">
+      <div className="w-full max-w-6xl space-y-8">
+        {/* Page Header */}
+        <div className="flex items-center justify-between bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+              <QrCode className="text-white" size={28} />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-slate-800 tracking-tight">AbsenceFlow QR Portal</h1>
+              <p className="text-slate-500 font-medium mt-1">Reception / Kiosk Display</p>
+            </div>
+          </div>
+          <Button 
+            variant="secondary"
+            onClick={() => window.close()}
+            className="text-slate-500 hover:text-rose-600 hover:bg-rose-50 border-slate-200"
+          >
+            Close Portal
+          </Button>
         </div>
-        <p className="text-slate-500 font-medium mt-1">Display this screen to allow employees to check in/out using face and QR verification</p>
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
@@ -251,7 +263,7 @@ const AttendanceVerification = () => {
             )}
           </div>
         </Card>
-
+      </div>
       </div>
     </div>
   );

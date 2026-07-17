@@ -14,6 +14,7 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const authRoutes = require("./routes/authRoutes");
 const securityRoutes = require("./routes/securityRoutes");
+const departmentRoutes = require("./routes/departmentRoutes");
 
 const app = express();
 
@@ -164,6 +165,9 @@ app.use("/api/dashboard", dashboardRoutes);
 
 // Employee routes
 app.use("/api/employees", employeeRoutes);
+
+// Department routes
+app.use("/api/departments", departmentRoutes);
 
 // Absence routes
 app.use("/api/absences", absenceRoutes);

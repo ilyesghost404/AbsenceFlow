@@ -171,11 +171,12 @@ const getDashboardStats = async (req, res) => {
 
     const deptAbsencesResult = await db.query(`
       SELECT 
-        e.department,
+        COALESCE(d.name, 'No Department') as department,
         COUNT(a.id) as count
       FROM absences a
       JOIN employees e ON a.employee_id = e.id
-      GROUP BY e.department
+      LEFT JOIN departments d ON e.department_id = d.id
+      GROUP BY d.name
       ORDER BY count DESC
     `);
 
@@ -379,11 +380,12 @@ const getAdminDashboardStats = async (req, res) => {
     // ── Department distribution ─────────────────────────────────────────────
     const deptDistResult = await db.query(`
       SELECT
-        COALESCE(e.department, 'No Department') AS department,
+        COALESCE(d.name, 'No Department') AS department,
         COUNT(u.id) AS count
       FROM users u
       LEFT JOIN employees e ON u.employee_id = e.id
-      GROUP BY COALESCE(e.department, 'No Department')
+      LEFT JOIN departments d ON e.department_id = d.id
+      GROUP BY COALESCE(d.name, 'No Department')
       ORDER BY count DESC
     `);
 
@@ -414,9 +416,10 @@ const getAdminDashboardStats = async (req, res) => {
         u.is_active,
         u.created_at,
         CONCAT(e.first_name, ' ', e.last_name) AS full_name,
-        e.department
+        d.name as department
       FROM users u
       LEFT JOIN employees e ON u.employee_id = e.id
+      LEFT JOIN departments d ON e.department_id = d.id
       ORDER BY u.created_at DESC
       LIMIT 10
     `);
@@ -499,14 +502,15 @@ const getAdminDashboardSearch = async (req, res) => {
         u.is_active,
         u.created_at,
         CONCAT(e.first_name, ' ', e.last_name) AS full_name,
-        e.department
+        d.name as department
       FROM users u
       LEFT JOIN employees e ON u.employee_id = e.id
+      LEFT JOIN departments d ON e.department_id = d.id
       WHERE
         LOWER(u.username) LIKE $1
         OR LOWER(u.email)   LIKE $1
         OR LOWER(CONCAT(e.first_name, ' ', e.last_name)) LIKE $1
-        OR LOWER(e.department) LIKE $1
+        OR LOWER(d.name) LIKE $1
       ORDER BY u.created_at DESC
       LIMIT 20
     `, [searchTerm]);

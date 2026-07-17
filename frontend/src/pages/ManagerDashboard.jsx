@@ -11,6 +11,7 @@ import {
   XCircle,
   Sunrise,
   Activity,
+  UserPlus,
   TrendingUp
 } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
@@ -140,6 +141,83 @@ const ManagerDashboard = () => {
               Manage Attendance
             </a>
           </div>
+        </div>
+      </div>
+
+      {/* ── Quick Access Action Bar ──────────────────────────────────────── */}
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-3 mb-8 animate-slide-up stagger-1">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          {[
+            {
+              label: 'Add Employee',
+              icon: UserPlus,
+              iconBg: 'bg-emerald-50',
+              iconColor: 'text-emerald-600',
+              accent: 'hover:text-emerald-700',
+              accentBar: 'bg-emerald-500',
+              action: () => window.location.href = '/employees',
+            },
+            {
+              label: 'Open QR Portal',
+              icon: Clock,
+              iconBg: 'bg-blue-50',
+              iconColor: 'text-blue-600',
+              accent: 'hover:text-blue-700',
+              accentBar: 'bg-blue-500',
+              action: () => window.open('/attendance-verification', 'QRPortalWindow'),
+            },
+            {
+              label: 'Add Department',
+              icon: Users,
+              iconBg: 'bg-indigo-50',
+              iconColor: 'text-indigo-600',
+              accent: 'hover:text-indigo-700',
+              accentBar: 'bg-indigo-500',
+              action: () => window.location.href = '/departments',
+            },
+            {
+              label: 'Add Holiday',
+              icon: CalendarDays,
+              iconBg: 'bg-violet-50',
+              iconColor: 'text-violet-600',
+              accent: 'hover:text-violet-700',
+              accentBar: 'bg-violet-500',
+              action: () => window.location.href = '/holidays',
+            },
+            {
+              label: 'Generate Reports',
+              icon: TrendingUp,
+              iconBg: 'bg-teal-50',
+              iconColor: 'text-teal-600',
+              accent: 'hover:text-teal-700',
+              accentBar: 'bg-teal-500',
+              action: () => window.location.href = '/reports',
+            },
+          ].map(({ label, icon: Icon, iconBg, iconColor, accent, accentBar, action }) => (
+            <button
+              key={label}
+              onClick={action}
+              className={`
+                relative flex flex-col items-center justify-center gap-3 p-4 rounded-2xl
+                text-slate-600 text-sm font-semibold border border-transparent
+                transition-all duration-300 group
+                ${accent} hover:bg-slate-50 hover:border-slate-100 hover:shadow-sm
+              `}
+            >
+              <div className={`
+                w-12 h-12 rounded-xl flex items-center justify-center
+                ${iconBg} transition-transform duration-300 group-hover:-translate-y-1 group-hover:scale-105
+              `}>
+                <Icon size={20} className={iconColor} />
+              </div>
+              <span className="text-center">{label}</span>
+              <span className={`
+                absolute bottom-0 left-1/2 -translate-x-1/2
+                h-1 w-0 ${accentBar} rounded-t-lg
+                transition-all duration-300 group-hover:w-12
+              `} />
+            </button>
+          ))}
         </div>
       </div>
 

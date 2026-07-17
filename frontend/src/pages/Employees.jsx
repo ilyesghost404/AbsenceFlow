@@ -7,6 +7,7 @@ import RegisterFaceModal from '../components/RegisterFaceModal';
 import LoadingSpinner, { SkeletonTable } from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import Pagination from '../components/Pagination';
+import api from '../services/api';
 import { getEmployees, createEmployee, updateEmployee, deleteEmployee } from '../services/employeeService';
 
 // Timezone-safe local date parser
@@ -53,6 +54,7 @@ const Employees = () => {
   const [registeringFaceEmployee, setRegisteringFaceEmployee] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
+  const [departmentsList, setDepartmentsList] = useState([]);
   
   // Pagination state
   const [page, setPage] = useState(1);
@@ -65,7 +67,7 @@ const Employees = () => {
     last_name: '',
     email: '',
     phone: '',
-    department: '',
+    department_id: '',
     position: '',
     hire_date: '',
   });
@@ -85,8 +87,20 @@ const Employees = () => {
     }
   };
 
+  const fetchDepartments = async () => {
+    try {
+      const response = await api.get('/departments');
+      if (response.data.success) {
+        setDepartmentsList(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+    }
+  };
+
   useEffect(() => {
     fetchEmployees();
+    fetchDepartments();
   }, [page]);
 
   // Debounced search
@@ -106,7 +120,7 @@ const Employees = () => {
       last_name: '',
       email: '',
       phone: '',
-      department: '',
+      department_id: '',
       position: '',
       hire_date: '',
     });
@@ -115,7 +129,10 @@ const Employees = () => {
 
   const handleEdit = (employee) => {
     setEditingEmployee(employee);
-    setFormData(employee);
+    setFormData({
+      ...employee,
+      department_id: employee.department_id || ''
+    });
     setIsModalOpen(true);
   };
 
@@ -421,12 +438,16 @@ const Employees = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">Department</label>
-              <input
-                type="text"
-                value={formData.department}
-                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+              <select
+                value={formData.department_id}
+                onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              >
+                <option value="">Select Department</option>
+                {departmentsList.map(dept => (
+                  <option key={dept.id} value={dept.id}>{dept.name}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">Position</label>

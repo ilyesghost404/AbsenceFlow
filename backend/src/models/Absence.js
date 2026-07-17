@@ -8,6 +8,7 @@ class Absence {
         let baseQuery = `
             FROM absences
             JOIN employees ON absences.employee_id = employees.id
+            LEFT JOIN departments d ON employees.department_id = d.id
         `;
         let countQuery = `SELECT COUNT(*) ${baseQuery}`;
         let dataQuery = `
@@ -15,7 +16,7 @@ class Absence {
                 absences.*,
                 CONCAT(employees.first_name, ' ', employees.last_name) AS employee_name,
                 employees.matricule,
-                employees.department
+                d.name AS department
             ${baseQuery}
         `;
 
@@ -62,9 +63,10 @@ class Absence {
                 absences.*,
                 CONCAT(employees.first_name, ' ', employees.last_name) AS employee_name,
                 employees.matricule,
-                employees.department
+                d.name AS department
             FROM absences
             JOIN employees ON absences.employee_id = employees.id
+            LEFT JOIN departments d ON employees.department_id = d.id
             WHERE $1 BETWEEN absences.start_date AND absences.end_date
             ORDER BY absences.created_at DESC
         `, [date]);
@@ -140,6 +142,7 @@ class Absence {
         let baseQuery = `
             FROM absences
             JOIN employees ON absences.employee_id = employees.id
+            LEFT JOIN departments d ON employees.department_id = d.id
             WHERE absences.employee_id = $1
         `;
         let countQuery = `SELECT COUNT(*) ${baseQuery}`;
@@ -148,7 +151,7 @@ class Absence {
                 absences.*,
                 CONCAT(employees.first_name, ' ', employees.last_name) AS employee_name,
                 employees.matricule,
-                employees.department
+                d.name AS department
             ${baseQuery}
         `;
 

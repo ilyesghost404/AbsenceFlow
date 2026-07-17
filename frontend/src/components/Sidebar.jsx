@@ -13,7 +13,8 @@ import {
   CalendarDays,
   User,
   ShieldCheck,
-  QrCode
+  QrCode,
+  Building2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -27,21 +28,19 @@ const Sidebar = ({ isOpen, onClose }) => {
     if (user?.role === 'admin') {
       items.push(
         { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/employees', label: 'Employees', icon: Users },
         { path: '/users', label: 'Users', icon: Users },
-        { path: '/reports', label: 'Reports', icon: BarChart3 },
-        { path: '/attendance-verification', label: 'QR Portal', icon: QrCode },
         { path: '/admin/security', label: 'Security Center', icon: ShieldCheck }
       );
     } else if (user?.role === 'manager') {
       items.push(
         { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { path: '/departments', label: 'Departments', icon: Building2 },
         { path: '/employees', label: 'Employees', icon: Users },
         { path: '/attendance', label: 'Attendance', icon: CalendarCheck },
-        { path: '/attendance-verification', label: 'QR Portal', icon: QrCode },
         { path: '/leave-requests', label: 'Leave Requests', icon: CalendarDays },
+        { path: '/holidays', label: 'Holidays', icon: CalendarRange },
         { path: '/reports', label: 'Reports', icon: BarChart3 },
-        { path: '/holidays', label: 'Holidays', icon: CalendarRange }
+        { path: '/attendance-verification', label: 'QR Portal', icon: QrCode }
       );
     } else if (user?.role === 'employee') {
       items.push(
@@ -61,6 +60,30 @@ const Sidebar = ({ isOpen, onClose }) => {
     if (role === 'admin') return 'Administrator';
     if (role === 'manager') return 'Manager';
     return 'Employee';
+  };
+
+  const handleMenuClick = (e, item, isMobile = false) => {
+    if (item.path === '/attendance-verification') {
+      e.preventDefault();
+      const qrWindow = window.open(
+        item.path,
+        'QRPortalWindow'
+      );
+      
+      if (qrWindow) {
+        qrWindow.focus();
+      } else {
+        alert('Popup blocked. Please allow popups for this site to open the QR Portal.');
+      }
+      
+      if (isMobile && onClose) {
+        onClose();
+      }
+    } else {
+      if (isMobile && onClose) {
+        onClose();
+      }
+    }
   };
 
   return (
@@ -88,6 +111,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <Link
                   key={item.path}
                   to={item.path}
+                  onClick={(e) => handleMenuClick(e, item, false)}
                   className={`
                     flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group
                     ${isActive
@@ -161,7 +185,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  onClick={onClose}
+                  onClick={(e) => handleMenuClick(e, item, true)}
                   className={`
                     flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group
                     ${isActive

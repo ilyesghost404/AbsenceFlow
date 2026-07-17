@@ -2,42 +2,40 @@ const db = require("../config/database");
 const reportService = require("../services/reportService");
 const { getHolidays, countWorkingDays, toDateString } = require("../services/attendanceService");
 
+const buildReportConditions = (query) => {
+    const { department_id, month, start_date, end_date } = query;
+    let conditions = [];
+    let params = [];
+    let paramIndex = 1;
+
+    if (department_id) {
+        conditions.push(`e.department_id = $${paramIndex++}`);
+        params.push(department_id);
+    }
+    if (start_date) {
+        conditions.push(`a.start_date >= $${paramIndex++}`);
+        params.push(start_date);
+    }
+    if (end_date) {
+        conditions.push(`a.start_date <= $${paramIndex++}`);
+        params.push(end_date);
+    }
+    if (month) {
+        const [yearStr, monthStr] = month.split('-');
+        if (yearStr && monthStr) {
+            conditions.push(`EXTRACT(YEAR FROM a.start_date) = $${paramIndex++}`);
+            params.push(yearStr);
+            conditions.push(`EXTRACT(MONTH FROM a.start_date) = $${paramIndex++}`);
+            params.push(monthStr);
+        }
+    }
+    return { conditions, params, paramIndex };
+};
+
 // Get comprehensive report statistics
 const getReportStats = async (req, res) => {
     try {
-        const {
-            startDate,
-            endDate,
-            department,
-            status,
-            type
-        } = req.query;
-
-        // Build query conditions
-        let conditions = [];
-        let params = [];
-        let paramIndex = 1;
-
-        if (startDate) {
-            conditions.push(`a.start_date >= $${paramIndex++}`);
-            params.push(startDate);
-        }
-        if (endDate) {
-            conditions.push(`a.start_date <= $${paramIndex++}`);
-            params.push(endDate);
-        }
-        if (department) {
-            conditions.push(`e.department = $${paramIndex++}`);
-            params.push(department);
-        }
-        if (status) {
-            conditions.push(`a.status = $${paramIndex++}`);
-            params.push(status);
-        }
-        if (type) {
-            conditions.push(`a.type = $${paramIndex++}`);
-            params.push(type);
-        }
+        const { conditions, params } = buildReportConditions(req.query);
 
         const whereClause = conditions.length > 0 
             ? 'WHERE ' + conditions.join(' AND ') 
@@ -52,6 +50,7 @@ const getReportStats = async (req, res) => {
             SELECT COUNT(*) as count 
             FROM absences a
             JOIN employees e ON a.employee_id = e.id
+            LEFT JOIN departments d ON e.department_id = d.id
             ${whereClause}
         `;
         const absencesResult = await db.query(absencesQuery, params);
@@ -118,17 +117,24 @@ const getReportStats = async (req, res) => {
 // Get monthly absence evolution
 const getMonthlyAbsenceEvolution = async (req, res) => {
     try {
+        let { conditions, params, paramIndex } = buildReportConditions(req.query);
+        conditions.push(`a.start_date >= CURRENT_DATE - INTERVAL '12 months'`);
+
+        const whereClause = 'WHERE ' + conditions.join(' AND ');
+
         const result = await db.query(`
             SELECT 
-                TO_CHAR(start_date, 'FMMonth YYYY') as month,
-                EXTRACT(YEAR FROM start_date) as year,
-                EXTRACT(MONTH FROM start_date) as month_num,
-                COUNT(*) as count
-            FROM absences
-            WHERE start_date >= CURRENT_DATE - INTERVAL '12 months'
-            GROUP BY EXTRACT(YEAR FROM start_date), EXTRACT(MONTH FROM start_date), TO_CHAR(start_date, 'FMMonth YYYY')
+                TO_CHAR(a.start_date, 'FMMonth YYYY') as month,
+                EXTRACT(YEAR FROM a.start_date) as year,
+                EXTRACT(MONTH FROM a.start_date) as month_num,
+                COUNT(a.id) as count
+            FROM absences a
+            JOIN employees e ON a.employee_id = e.id
+            LEFT JOIN departments d ON e.department_id = d.id
+            ${whereClause}
+            GROUP BY EXTRACT(YEAR FROM a.start_date), EXTRACT(MONTH FROM a.start_date), TO_CHAR(a.start_date, 'FMMonth YYYY')
             ORDER BY year, month_num
-        `);
+        `, params);
         
         res.json({
             success: true,
@@ -149,24 +155,30 @@ const getMonthlyAbsenceEvolution = async (req, res) => {
 // Get department statistics
 const getDepartmentStats = async (req, res) => {
     try {
+        let { conditions, params, paramIndex } = buildReportConditions(req.query);
+        conditions.push("d.name IS NOT NULL AND d.name != ''");
+
+        const whereClause = 'WHERE ' + conditions.join(' AND ');
+
         const result = await db.query(`
             SELECT 
-                e.department as name,
+                d.name as name,
                 COUNT(a.id) as count,
-                ROUND((COUNT(a.id) * 100.0 / (SELECT COUNT(*) FROM employees)), 1) as percentage
+                ROUND((COUNT(a.id) * 100.0 / NULLIF((SELECT COUNT(*) FROM employees), 0)), 1) as percentage
             FROM employees e
+            LEFT JOIN departments d ON e.department_id = d.id
             LEFT JOIN absences a ON e.id = a.employee_id
-            WHERE e.department IS NOT NULL AND e.department != ''
-            GROUP BY e.department
+            ${whereClause}
+            GROUP BY d.name
             ORDER BY count DESC
-        `);
+        `, params);
         
         res.json({
             success: true,
             data: result.rows.map(row => ({
                 name: row.name,
                 absences: parseInt(row.count),
-                percentage: parseFloat(row.percentage)
+                percentage: parseFloat(row.percentage) || 0
             }))
         });
     } catch (error) {
@@ -181,14 +193,21 @@ const getDepartmentStats = async (req, res) => {
 // Get absence type distribution
 const getAbsenceTypes = async (req, res) => {
     try {
+        let { conditions, params, paramIndex } = buildReportConditions(req.query);
+
+        const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+
         const result = await db.query(`
             SELECT 
-                type as name,
-                COUNT(*) as count
-            FROM absences
-            GROUP BY type
+                a.type as name,
+                COUNT(a.id) as count
+            FROM absences a
+            JOIN employees e ON a.employee_id = e.id
+            LEFT JOIN departments d ON e.department_id = d.id
+            ${whereClause}
+            GROUP BY a.type
             ORDER BY count DESC
-        `);
+        `, params);
         
         res.json({
             success: true,
@@ -209,20 +228,26 @@ const getAbsenceTypes = async (req, res) => {
 // Get employee absence ranking
 const getEmployeeRanking = async (req, res) => {
     try {
+        let { conditions, params, paramIndex } = buildReportConditions(req.query);
+
+        const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+
         const result = await db.query(`
             SELECT 
                 CONCAT(e.first_name, ' ', e.last_name) as name,
                 e.matricule,
-                e.department,
+                d.name as department,
                 COUNT(a.id) as count,
-                ROUND((COUNT(a.id) * 100.0 / (SELECT COUNT(*) FROM absences)), 1) as percentage
+                ROUND((COUNT(a.id) * 100.0 / NULLIF((SELECT COUNT(*) FROM absences), 0)), 1) as percentage
             FROM employees e
-            LEFT JOIN absences a ON e.id = a.employee_id
-            GROUP BY e.id, e.first_name, e.last_name, e.matricule, e.department
+            LEFT JOIN departments d ON e.department_id = d.id
+            JOIN absences a ON e.id = a.employee_id
+            ${whereClause}
+            GROUP BY e.id, e.first_name, e.last_name, e.matricule, d.name
             HAVING COUNT(a.id) > 0
             ORDER BY count DESC
             LIMIT 10
-        `);
+        `, params);
         
         res.json({
             success: true,
@@ -231,7 +256,7 @@ const getEmployeeRanking = async (req, res) => {
                 matricule: row.matricule,
                 department: row.department,
                 count: parseInt(row.count),
-                percentage: parseFloat(row.percentage)
+                percentage: parseFloat(row.percentage) || 0
             }))
         });
     } catch (error) {
@@ -246,45 +271,8 @@ const getEmployeeRanking = async (req, res) => {
 // Get detailed absences for reports table
 const getDetailedAbsences = async (req, res) => {
     try {
-        const {
-            page = 1,
-            limit = 20,
-            search = '',
-            startDate,
-            endDate,
-            department,
-            status,
-            type
-        } = req.query;
-
-        let conditions = [];
-        let params = [];
-        let paramIndex = 1;
-
-        if (search) {
-            conditions.push(`(CONCAT(e.first_name, ' ', e.last_name) ILIKE $${paramIndex++} OR e.matricule ILIKE $${paramIndex++})`);
-            params.push(`%${search}%`, `%${search}%`);
-        }
-        if (startDate) {
-            conditions.push(`a.start_date >= $${paramIndex++}`);
-            params.push(startDate);
-        }
-        if (endDate) {
-            conditions.push(`a.end_date <= $${paramIndex++}`);
-            params.push(endDate);
-        }
-        if (department) {
-            conditions.push(`e.department = $${paramIndex++}`);
-            params.push(department);
-        }
-        if (status) {
-            conditions.push(`a.status = $${paramIndex++}`);
-            params.push(status);
-        }
-        if (type) {
-            conditions.push(`a.type = $${paramIndex++}`);
-            params.push(type);
-        }
+        const { page = 1, limit = 20 } = req.query;
+        let { conditions, params, paramIndex } = buildReportConditions(req.query);
 
         const whereClause = conditions.length > 0 
             ? 'WHERE ' + conditions.join(' AND ') 
@@ -297,6 +285,7 @@ const getDetailedAbsences = async (req, res) => {
             SELECT COUNT(*) as total
             FROM absences a
             JOIN employees e ON a.employee_id = e.id
+            LEFT JOIN departments d ON e.department_id = d.id
             ${whereClause}
         `;
         const countResult = await db.query(countQuery, params);
@@ -308,7 +297,7 @@ const getDetailedAbsences = async (req, res) => {
                 a.id,
                 CONCAT(e.first_name, ' ', e.last_name) as employee_name,
                 e.matricule,
-                e.department,
+                d.name as department,
                 a.type,
                 a.start_date,
                 a.end_date,
@@ -317,6 +306,7 @@ const getDetailedAbsences = async (req, res) => {
                 a.reason
             FROM absences a
             JOIN employees e ON a.employee_id = e.id
+            LEFT JOIN departments d ON e.department_id = d.id
             ${whereClause}
             ORDER BY a.created_at DESC
             LIMIT $${paramIndex++} OFFSET $${paramIndex++}
@@ -356,30 +346,29 @@ const getDetailedAbsences = async (req, res) => {
 const exportToExcel = async (req, res) => {
     try {
         const {
-            startDate,
-            endDate,
-            department,
-            status,
-            type,
-            year,
-            month
+            department_id,
+            start_date,
+            end_date,
+            month,
+            year // legacy
         } = req.query;
 
-        let workbook;
-        if (year && month) {
-            workbook = await reportService.generateMonthlyMatrixReport(year, month);
-        } else {
-            let queryParams = {
-                startDate,
-                endDate,
-                department,
-                status,
-                type
-            };
-            workbook = await reportService.generateCustomReport(queryParams);
+        let queryParams = { department_id, start_date, end_date, month };
+        if (year && month && !queryParams.month) {
+            queryParams.month = `${year}-${String(month).padStart(2, '0')}`;
         }
         
-        const fileName = `AbsenceFlow_Report_${toDateString(new Date())}.xlsx`;
+        const workbook = await reportService.generateDetailedAttendanceReport(queryParams);
+        
+        let fileName;
+        if (queryParams.month) {
+            const [y, m] = queryParams.month.split('-');
+            const date = new Date(parseInt(y), parseInt(m) - 1, 1);
+            const monthName = date.toLocaleString('en-US', { month: 'short' });
+            fileName = `AbsenceFlow_Attendance_Report_${monthName}_${y}.xlsx`;
+        } else {
+            fileName = `AbsenceFlow_Attendance_Report_${toDateString(new Date())}.xlsx`;
+        }
         res.setHeader(
             'Content-Type',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -447,9 +436,8 @@ const getAttendanceMatrix = async (req, res) => {
         const endDate = new Date(parsedYear, parsedMonth, 0);
         const totalDays = endDate.getDate();
 
-        // 1. Fetch all active employees
         const employeesResult = await db.query(
-            "SELECT id, matricule, first_name, last_name, department FROM employees ORDER BY matricule"
+            "SELECT e.id, e.matricule, e.first_name, e.last_name, d.name as department FROM employees e LEFT JOIN departments d ON e.department_id = d.id ORDER BY e.matricule"
         );
         const employees = employeesResult.rows;
 

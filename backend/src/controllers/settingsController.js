@@ -11,9 +11,10 @@ const getProfile = async (req, res) => {
       SELECT 
         u.id, u.username, u.email, u.role, u.is_active, u.created_at, u.updated_at,
         CONCAT(e.first_name, ' ', e.last_name) AS full_name,
-        e.phone, e.department, e.position
+        e.phone, d.name as department, e.position
       FROM users u
       LEFT JOIN employees e ON u.employee_id = e.id
+      LEFT JOIN departments d ON e.department_id = d.id
       WHERE u.id = $1
     `, [userId]);
 

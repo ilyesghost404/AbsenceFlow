@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { 
   Users, UserPlus, Edit2, Trash2, Shield, UserCheck, UserX, 
@@ -20,6 +21,7 @@ const UserManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const location = useLocation();
   
   // Pagination state
   const [page, setPage] = useState(1);
@@ -79,6 +81,15 @@ const UserManagement = () => {
     });
     setIsModalOpen(true);
   };
+
+  useEffect(() => {
+    if (location.state?.action === 'add') {
+      // Small timeout to let initial state settle if needed
+      setTimeout(() => handleAdd(), 100);
+      // Clear state to avoid reopening modal on reload
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const handleEdit = (user) => {
     setEditingUser(user);

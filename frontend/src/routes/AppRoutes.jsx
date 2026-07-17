@@ -22,6 +22,7 @@ import Profile from '../pages/Profile';
 import SecuritySettings from '../pages/SecuritySettings';
 import AdminSecurityCenter from '../pages/AdminSecurityCenter';
 import AttendanceVerification from '../pages/AttendanceVerification';
+import Departments from '../pages/Departments';
 
 const DashboardRouter = () => {
   const { user } = useAuth();
@@ -53,6 +54,11 @@ const AppRoutes = () => {
 
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
+            {/* Standalone Route for QR Portal */}
+            <Route element={<ProtectedRoute allowedRoles={['manager']} />}>
+              <Route path="/attendance-verification" element={<AttendanceVerification />} />
+            </Route>
+
             <Route element={<MainLayout />}>
               {/* Default redirect based on role */}
               <Route path="/" element={<RootRedirect />} />
@@ -74,11 +80,11 @@ const AppRoutes = () => {
                 <Route path="/attendance" element={<Attendance />} />
               </Route>
 
-              {/* Manager and Admin routes */}
-              <Route element={<ProtectedRoute allowedRoles={['manager', 'admin']} />}>
+              {/* Manager only routes */}
+              <Route element={<ProtectedRoute allowedRoles={['manager']} />}>
                 <Route path="/employees" element={<Employees />} />
+                <Route path="/departments" element={<Departments />} />
                 <Route path="/reports" element={<Reports />} />
-                <Route path="/attendance-verification" element={<AttendanceVerification />} />
               </Route>
 
               {/* Admin only routes */}

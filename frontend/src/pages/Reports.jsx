@@ -35,6 +35,7 @@ import {
   getAttendanceMatrix
 } from '../services/reportService';
 import { getEmployees } from '../services/employeeService';
+import api from '../services/api';
 import {
   LineChart,
   Line,
@@ -68,17 +69,32 @@ const Reports = () => {
   const [detailedData, setDetailedData] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    search: '',
-    startDate: '',
-    endDate: '',
-    department: '',
-    status: '',
-    type: '',
-    page: 1,
-    limit: 10
+  const [formFilters, setFormFilters] = useState({
+    department_id: '',
+    timePeriod: 'this_month',
+    month: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
+    start_date: '',
+    end_date: ''
+  });
+  const [activeFilters, setActiveFilters] = useState({
+    department_id: '',
+    start_date: '',
+    end_date: '',
+    month: ''
   });
   const [departments, setDepartments] = useState([]);
+
+  useEffect(() => {
+    const loadDepartments = async () => {
+      try {
+        const response = await api.get('/departments');
+        setDepartments(response.data.data || response.data);
+      } catch (error) {
+        console.error('Failed to load departments', error);
+      }
+    };
+    loadDepartments();
+  }, []);
   const [exporting, setExporting] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -107,28 +123,61 @@ const Reports = () => {
 
   const COLORS = ['#2563eb', '#7c3aed', '#22c55e', '#f59e0b', '#ef4444'];
 
+  const applyFilters = useCallback(() => {
+    let start_date = formFilters.start_date;
+    let end_date = formFilters.end_date;
+    let month = '';
+
+    const today = new Date();
+    if (formFilters.timePeriod === 'this_month') {
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      start_date = firstDay.toISOString().split('T')[0];
+      end_date = lastDay.toISOString().split('T')[0];
+    } else if (formFilters.timePeriod === 'last_month') {
+      const firstDay = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const lastDay = new Date(today.getFullYear(), today.getMonth(), 0);
+      start_date = firstDay.toISOString().split('T')[0];
+      end_date = lastDay.toISOString().split('T')[0];
+    } else if (formFilters.timePeriod === 'specific_month' && formFilters.month) {
+      const [year, monthStr] = formFilters.month.split('-');
+      const firstDay = new Date(year, monthStr - 1, 1);
+      const lastDay = new Date(year, monthStr, 0);
+      start_date = firstDay.toISOString().split('T')[0];
+      end_date = lastDay.toISOString().split('T')[0];
+      month = formFilters.month;
+    }
+
+    setActiveFilters({
+      department_id: formFilters.department_id,
+      start_date,
+      end_date,
+      month,
+      page: 1,
+      limit: 10
+    });
+  }, [formFilters]);
+
+  // Initial fetch on mount
+  useEffect(() => {
+    applyFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const fetchAllData = useCallback(async () => {
+    // Only fetch if activeFilters is populated (not initial mount empty)
+    if (!activeFilters.start_date && !activeFilters.month && !activeFilters.end_date) return;
     try {
       setLoading(true);
 
-      // Stat filters (no pagination fields)
-      const statFilters = {
-        startDate: filters.startDate,
-        endDate: filters.endDate,
-        department: filters.department,
-        status: filters.status,
-        type: filters.type,
-      };
-
-      const [statsRes, monthlyRes, deptRes, typesRes, rankingRes, detailedRes, employeesRes] =
+      const [statsRes, monthlyRes, deptRes, typesRes, rankingRes, detailedRes] =
         await Promise.allSettled([
-          getReportStats(statFilters),
-          getMonthlyEvolution(),
-          getDepartmentStats(),
-          getAbsenceTypes(),
-          getEmployeeRanking(),
-          getDetailedAbsences(filters),
-          getEmployees({ limit: 1000 }),
+          getReportStats(activeFilters),
+          getMonthlyEvolution(activeFilters),
+          getDepartmentStats(activeFilters),
+          getAbsenceTypes(activeFilters),
+          getEmployeeRanking(activeFilters),
+          getDetailedAbsences(activeFilters),
         ]);
 
       if (statsRes.status === 'fulfilled') setStats(statsRes.value);
@@ -151,14 +200,6 @@ const Reports = () => {
         console.error('Detailed absences failed:', detailedRes.reason);
       }
 
-      if (employeesRes.status === 'fulfilled') {
-        const employeesData = Array.isArray(employeesRes.value)
-          ? employeesRes.value
-          : employeesRes.value.data || employeesRes.value.employees || [];
-        const deptList = [...new Set(employeesData.map(e => e.department).filter(Boolean))];
-        setDepartments(deptList);
-      }
-
       // Show error only if all critical calls failed
       const criticalFailed = [statsRes, detailedRes].every(r => r.status === 'rejected');
       if (criticalFailed) {
@@ -171,26 +212,34 @@ const Reports = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [activeFilters]);
 
   useEffect(() => {
     fetchAllData();
   }, [fetchAllData]);
 
   const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value, page: 1 }));
+    setFormFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleExportExcel = () => {
-    setIsExportModalOpen(true);
+  const handleResetFilters = () => {
+    setFormFilters({
+      department_id: '',
+      timePeriod: 'this_month',
+      month: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
+      start_date: '',
+      end_date: ''
+    });
+    setTimeout(() => {
+      applyFilters(); // will apply the default values again
+    }, 0);
   };
 
-  const confirmExport = async () => {
+  const handleExportExcel = async () => {
     try {
       setExporting(true);
-      await exportToExcel({ year: selectedYear, month: selectedMonth });
+      await exportToExcel(activeFilters);
       toast.success('Excel exported successfully');
-      setIsExportModalOpen(false);
     } catch (error) {
       console.error('Error exporting:', error);
       toast.error('Failed to export Excel');
@@ -467,60 +516,67 @@ const Reports = () => {
                 <Filter size={20} className="text-blue-600" />
                 Filters
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                <div className="relative">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                  <input
-                    type="text"
-                    placeholder="Search employee..."
-                    value={filters.search}
-                    onChange={(e) => handleFilterChange('search', e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                  />
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <select
+                    value={formFilters.department_id}
+                    onChange={(e) => handleFilterChange('department_id', e.target.value)}
+                    className="px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white"
+                  >
+                    <option value="">All Departments</option>
+                    {departments.map((dept) => (
+                      <option key={dept.id} value={dept.id}>{dept.name}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={formFilters.timePeriod}
+                    onChange={(e) => handleFilterChange('timePeriod', e.target.value)}
+                    className="px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white"
+                  >
+                    <option value="this_month">This Month</option>
+                    <option value="last_month">Last Month</option>
+                    <option value="specific_month">Specific Month</option>
+                    <option value="custom">Custom Date Range</option>
+                  </select>
+
+                  {formFilters.timePeriod === 'specific_month' && (
+                    <input
+                      type="month"
+                      value={formFilters.month}
+                      onChange={(e) => handleFilterChange('month', e.target.value)}
+                      className="px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white"
+                    />
+                  )}
+
+                  {formFilters.timePeriod === 'custom' && (
+                    <>
+                      <input
+                        type="date"
+                        value={formFilters.start_date}
+                        onChange={(e) => handleFilterChange('start_date', e.target.value)}
+                        className="px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white"
+                        title="Start Date"
+                      />
+                      <input
+                        type="date"
+                        value={formFilters.end_date}
+                        onChange={(e) => handleFilterChange('end_date', e.target.value)}
+                        className="px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white"
+                        title="End Date"
+                      />
+                    </>
+                  )}
                 </div>
-                <input
-                  type="date"
-                  value={filters.startDate}
-                  onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                  className="px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                />
-                <input
-                  type="date"
-                  value={filters.endDate}
-                  onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                  className="px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                />
-                <select
-                  value={filters.department}
-                  onChange={(e) => handleFilterChange('department', e.target.value)}
-                  className="px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                >
-                  <option value="">All Departments</option>
-                  {departments.map((dept) => (
-                    <option key={dept} value={dept}>{dept}</option>
-                  ))}
-                </select>
-                <select
-                  value={filters.status}
-                  onChange={(e) => handleFilterChange('status', e.target.value)}
-                  className="px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                >
-                  <option value="">All Status</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Validated">Validated</option>
-                  <option value="Rejected">Rejected</option>
-                </select>
-                <select
-                  value={filters.type}
-                  onChange={(e) => handleFilterChange('type', e.target.value)}
-                  className="px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                >
-                  <option value="">All Types</option>
-                  <option value="Vacation">Vacation</option>
-                  <option value="Sick Leave">Sick Leave</option>
-                  <option value="Training">Training</option>
-                  <option value="Other">Other</option>
-                </select>
+
+                <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+                  <Button variant="secondary" onClick={handleResetFilters}>
+                    Reset Filters
+                  </Button>
+                  <Button onClick={applyFilters}>
+                    Apply Filters
+                  </Button>
+                </div>
               </div>
             </Card>
           </div>
@@ -684,62 +740,7 @@ const Reports = () => {
         }
       `}</style>
 
-      <Modal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        title="Export Report"
-      >
-        <div className="space-y-6">
-          <p className="text-slate-600">
-            Select the month you want to export data for.
-          </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Year</label>
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Month</label>
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                {Array.from({ length: 12 }, (_, i) => (
-                  <option key={i + 1} value={i + 1}>
-                    {new Date(0, i).toLocaleString('default', { month: 'long' })}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-            <Button
-              variant="secondary"
-              onClick={() => setIsExportModalOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={confirmExport}
-              loading={exporting}
-            >
-              Export
-            </Button>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 };

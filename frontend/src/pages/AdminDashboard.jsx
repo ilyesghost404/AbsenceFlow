@@ -362,17 +362,8 @@ const AdminDashboard = ({ onAction }) => {
 
       {/* ── Quick Access Action Bar ──────────────────────────────────────── */}
       <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-3">
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {[
-            {
-              label: 'Add User',
-              icon: UserPlus,
-              iconBg: 'bg-emerald-50',
-              iconColor: 'text-emerald-600',
-              accent: 'hover:text-emerald-700',
-              accentBar: 'bg-emerald-500',
-              action: () => navigate('/users'),
-            },
             {
               label: 'Manage Users',
               icon: Users,
@@ -383,25 +374,25 @@ const AdminDashboard = ({ onAction }) => {
               action: () => navigate('/users'),
             },
             {
-              label: 'Security Center',
-              icon: Shield,
-              iconBg: 'bg-red-50',
-              iconColor: 'text-red-600',
-              accent: 'hover:text-red-700',
-              accentBar: 'bg-red-500',
-              action: () => navigate('/admin/security'),
+              label: 'Add User',
+              icon: UserPlus,
+              iconBg: 'bg-emerald-50',
+              iconColor: 'text-emerald-600',
+              accent: 'hover:text-emerald-700',
+              accentBar: 'bg-emerald-500',
+              action: () => navigate('/users', { state: { action: 'add' } }),
             },
             {
-              label: 'Activity Logs',
+              label: 'View System Activity',
               icon: Activity,
               iconBg: 'bg-indigo-50',
               iconColor: 'text-indigo-600',
               accent: 'hover:text-indigo-700',
               accentBar: 'bg-indigo-500',
-              action: () => document.getElementById('activity-logs-section')?.scrollIntoView({ behavior: 'smooth' }),
+              action: () => navigate('/admin/security'),
             },
             {
-              label: 'Roles & Permissions',
+              label: 'Manage Roles & Permissions',
               icon: Key,
               iconBg: 'bg-violet-50',
               iconColor: 'text-violet-600',
@@ -410,38 +401,22 @@ const AdminDashboard = ({ onAction }) => {
               action: () => navigate('/users'),
             },
             {
-              label: 'Export Reports',
-              icon: Download,
-              iconBg: 'bg-teal-50',
-              iconColor: 'text-teal-600',
-              accent: 'hover:text-teal-700',
-              accentBar: 'bg-teal-500',
-              action: async () => {
-                try {
-                  const { getUsers } = await import('../services/userService');
-                  const users = await getUsers();
-                  const headers = ['ID', 'Username', 'Email', 'Role', 'Active', 'Created At'];
-                  const rows = users.map(u => [u.id, u.username, u.email, u.role, u.is_active, u.created_at]);
-                  const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
-                  const blob = new Blob([csv], { type: 'text/csv' });
-                  const url  = URL.createObjectURL(blob);
-                  const a    = document.createElement('a');
-                  a.href = url; a.download = 'users_export.csv'; a.click();
-                  URL.revokeObjectURL(url);
-                  toast.success('Reports exported successfully');
-                } catch {
-                  toast.error('Failed to export reports');
-                }
-              },
-            },
-            {
-              label: 'Settings',
+              label: 'System Settings',
               icon: Settings,
               iconBg: 'bg-slate-100',
               iconColor: 'text-slate-600',
               accent: 'hover:text-slate-800',
               accentBar: 'bg-slate-500',
               action: () => navigate('/settings'),
+            },
+            {
+              label: 'Database/System Health',
+              icon: Server,
+              iconBg: 'bg-teal-50',
+              iconColor: 'text-teal-600',
+              accent: 'hover:text-teal-700',
+              accentBar: 'bg-teal-500',
+              action: () => document.getElementById('system-health-section')?.scrollIntoView({ behavior: 'smooth' }),
             },
           ].map(({ label, icon: Icon, iconBg, iconColor, accent, accentBar, action }) => (
             <button
@@ -749,7 +724,7 @@ const AdminDashboard = ({ onAction }) => {
       </div>
 
       {/* ── System Health ─────────────────────────────────────────────────── */}
-      <Card>
+      <Card id="system-health-section">
         <h3 className="font-bold text-slate-800 mb-5 flex items-center gap-2">
           <Server className="text-blue-600" size={20} />
           System Health

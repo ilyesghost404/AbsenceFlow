@@ -12,7 +12,7 @@ const { requireAuth, authorizeRoles } = require("../middleware/authMiddleware");
 
 // Helper middleware to check if employee can view this profile
 const canViewEmployee = (req, res, next) => {
-  if (req.user.role === "admin" || req.user.role === "manager") {
+  if (req.user.role === "manager") {
     return next();
   }
   if (req.user.role === "employee" && req.user.employee_id === parseInt(req.params.id)) {
@@ -23,10 +23,10 @@ const canViewEmployee = (req, res, next) => {
 
 router.get("/", requireAuth, authorizeRoles("admin", "manager"), getEmployees);
 router.get("/:id", requireAuth, canViewEmployee, getEmployeeById);
-router.post("/", requireAuth, authorizeRoles("admin", "manager"), createEmployee);
-router.put("/:id", requireAuth, authorizeRoles("admin", "manager"), updateEmployee);
-router.delete("/:id", requireAuth, authorizeRoles("admin", "manager"), deleteEmployee);
-router.post("/:id/register-face", requireAuth, authorizeRoles("admin", "manager"), registerFace);
+router.post("/", requireAuth, authorizeRoles("manager"), createEmployee);
+router.put("/:id", requireAuth, authorizeRoles("manager"), updateEmployee);
+router.delete("/:id", requireAuth, authorizeRoles("manager"), deleteEmployee);
+router.post("/:id/register-face", requireAuth, authorizeRoles("manager"), registerFace);
 
 module.exports = router;
 

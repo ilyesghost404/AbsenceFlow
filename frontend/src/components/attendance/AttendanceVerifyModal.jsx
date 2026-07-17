@@ -152,28 +152,37 @@ const AttendanceVerifyModal = ({ isOpen, onClose, type, employeeId, onSuccess })
       // Stop existing instance if any
       await stopQrScanner();
 
-      // Ensure DOM is fully ready & mobile camera has time to be released by the OS (500ms)
-      setTimeout(async () => {
+      // Wait a tiny tick to ensure React has flushed the DOM render for div#qr-reader
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      if (!document.getElementById("qr-reader")) {
+        throw new Error("QR container not found");
+      }
+
+      // Check secure context for camera access
+      if (!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        setQrError('Camera access requires a secure context (HTTPS) or localhost. Please enable Chrome override flags (chrome://flags/#unsafely-treat-insecure-origin-as-secure) or configure HTTPS.');
+        setQrLoading(false);
+        isInitializingScanner.current = false;
+        return;
+      }
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setQrError('Browser does not support camera access or restricts camera in insecure contexts.');
+        setQrLoading(false);
+        isInitializingScanner.current = false;
+        return;
+      }
+
+      let startSuccess = false;
+      let lastError = null;
+
+      // Robust initialization loop: Mobile hardware often needs time to release the front camera
+      // before it can spin up the rear camera. Instead of an arbitrary timeout, we intelligently retry.
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        if (!document.getElementById("qr-reader")) break; // DOM was unmounted
+
         try {
-          if (!document.getElementById("qr-reader")) {
-            throw new Error("QR container not found");
-          }
-
-          // Check secure context for camera access
-          if (!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-            setQrError('Camera access requires a secure context (HTTPS) or localhost. Please enable Chrome override flags (chrome://flags/#unsafely-treat-insecure-origin-as-secure) or configure HTTPS.');
-            setQrLoading(false);
-            isInitializingScanner.current = false;
-            return;
-          }
-
-          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            setQrError('Browser does not support camera access or restricts camera in insecure contexts.');
-            setQrLoading(false);
-            isInitializingScanner.current = false;
-            return;
-          }
-
           const qrScanner = new Html5Qrcode("qr-reader");
           qrScannerRef.current = qrScanner;
 
@@ -201,25 +210,47 @@ const AttendanceVerifyModal = ({ isOpen, onClose, type, employeeId, onSuccess })
               // ignore scan loops errors
             }
           );
-          setQrLoading(false);
-          isInitializingScanner.current = false;
+          
+          startSuccess = true;
+          break; // Success! Break out of the retry loop.
         } catch (scannerErr) {
-          console.error("🚨 [QR Scanner] QR Code scanner initialization failed:", scannerErr);
-          if (scannerErr?.name === 'NotAllowedError' || scannerErr?.name === 'PermissionDeniedError') {
-             setQrError('Camera permission denied. Please enable camera access in browser settings.');
-          } else if (scannerErr?.name === 'NotFoundError' || scannerErr?.name === 'DevicesNotFoundError') {
-             setQrError('No camera detected. Please connect a webcam.');
-          } else {
-             setQrError("Failed to access camera. It might be in use or unavailable.");
+          lastError = scannerErr;
+          console.warn(`🚨 [QR Scanner] Camera start attempt ${attempt} failed:`, scannerErr);
+          
+          // Cleanup the failed instance before retrying
+          if (qrScannerRef.current) {
+            try {
+              if (qrScannerRef.current.isScanning) {
+                await qrScannerRef.current.stop();
+              }
+            } catch (_) {}
+            try { qrScannerRef.current.clear(); } catch (_) {}
+            qrScannerRef.current = null;
           }
-          setQrLoading(false);
-          isInitializingScanner.current = false;
+
+          // If not the last attempt, wait for the OS to release the hardware lock
+          if (attempt < 3) {
+            await new Promise(resolve => setTimeout(resolve, 800));
+          }
         }
-      }, 500);
+      }
+
+      if (!startSuccess) {
+        throw lastError || new Error("Failed to initialize camera after retries");
+      }
+
+      setQrLoading(false);
     } catch (err) {
       console.error("🚨 [QR Scanner] Scanner setup failed:", err);
-      setQrError("Scanner initialization failed.");
+      if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
+         setQrError('Camera permission denied. Please enable camera access in browser settings.');
+      } else if (err?.name === 'NotFoundError' || err?.name === 'DevicesNotFoundError') {
+         setQrError('No camera detected. Please connect a webcam.');
+      } else {
+         setQrError("Failed to access camera. It might be in use or unavailable.");
+      }
       setQrLoading(false);
+    } finally {
       isInitializingScanner.current = false;
     }
   };
@@ -276,16 +307,17 @@ const AttendanceVerifyModal = ({ isOpen, onClose, type, employeeId, onSuccess })
 
   const stopQrScanner = async () => {
     if (qrScannerRef.current) {
-      const isScanning = qrScannerRef.current.isScanning;
-      if (isScanning) {
-        try {
+      try {
+        const isScanning = qrScannerRef.current.isScanning;
+        if (isScanning) {
           await qrScannerRef.current.stop();
-          qrScannerRef.current.clear();
-        } catch (err) {
-          console.error("🚨 [QR Scanner] Error stopping QR scanner:", err);
         }
+        qrScannerRef.current.clear();
+      } catch (err) {
+        console.error("🚨 [QR Scanner] Error stopping QR scanner:", err);
+      } finally {
+        qrScannerRef.current = null;
       }
-      qrScannerRef.current = null;
     }
   };
 

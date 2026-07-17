@@ -1,50 +1,53 @@
 import api from './api';
 
-// Get comprehensive report statistics
-export const getReportStats = async (filters = {}) => {
+const buildParams = (filters) => {
   const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
+  Object.entries(filters || {}).forEach(([key, value]) => {
     if (value !== '' && value !== null && value !== undefined) {
       params.append(key, value);
     }
   });
+  return params;
+};
 
+// Get comprehensive report statistics
+export const getReportStats = async (filters = {}) => {
+  const params = buildParams(filters);
   const response = await api.get(`/reports/statistics?${params}`);
   return response.data.data;
 };
 
 // Get monthly absence evolution (last 12 months)
-export const getMonthlyEvolution = async () => {
-  const response = await api.get('/reports/monthly-evolution');
+export const getMonthlyEvolution = async (filters = {}) => {
+  const params = buildParams(filters);
+  const response = await api.get(`/reports/monthly-evolution?${params}`);
   return response.data.data;
 };
 
 // Get department-level absence statistics
-export const getDepartmentStats = async () => {
-  const response = await api.get('/reports/departments');
+export const getDepartmentStats = async (filters = {}) => {
+  const params = buildParams(filters);
+  const response = await api.get(`/reports/departments?${params}`);
   return response.data.data;
 };
 
 // Get absence type distribution
-export const getAbsenceTypes = async () => {
-  const response = await api.get('/reports/types');
+export const getAbsenceTypes = async (filters = {}) => {
+  const params = buildParams(filters);
+  const response = await api.get(`/reports/types?${params}`);
   return response.data.data;
 };
 
 // Get top-10 employee absence ranking
-export const getEmployeeRanking = async () => {
-  const response = await api.get('/reports/ranking');
+export const getEmployeeRanking = async (filters = {}) => {
+  const params = buildParams(filters);
+  const response = await api.get(`/reports/ranking?${params}`);
   return response.data.data;
 };
 
 // Get paginated detailed absence list
 export const getDetailedAbsences = async (filters = {}) => {
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== '' && value !== null && value !== undefined) {
-      params.append(key, value);
-    }
-  });
+  const params = buildParams(filters);
 
   const response = await api.get(`/reports/detailed?${params}`);
   return response.data;
@@ -52,12 +55,7 @@ export const getDetailedAbsences = async (filters = {}) => {
 
 // Export absences to Excel (custom filter export) — triggers file download
 export const exportToExcel = async (filters = {}) => {
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== '' && value !== null && value !== undefined) {
-      params.append(key, value);
-    }
-  });
+  const params = buildParams(filters);
 
   const token =
     localStorage.getItem('token') || sessionStorage.getItem('token');
