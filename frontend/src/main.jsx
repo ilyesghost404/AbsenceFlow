@@ -14,7 +14,7 @@ class ErrorBoundary extends Component {
   }
   componentDidCatch(error, errorInfo) {
     console.error("React Error:", error, errorInfo);
-    fetch(`http://${window.location.hostname}:5000/api/log-error`, {
+    fetch(`/api/log-error`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ error: error.toString(), stack: error.stack, info: errorInfo.componentStack })

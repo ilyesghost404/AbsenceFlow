@@ -63,7 +63,7 @@ export const exportToExcel = async (filters = {}) => {
     localStorage.getItem('token') || sessionStorage.getItem('token');
 
   const response = await fetch(
-    `http://${window.location.hostname}:5000/api/reports/export/excel?${params}`,
+    `/api/reports/export/excel?${params}`,
     {
       headers: {
         Authorization: token ? `Bearer ${token}` : '',

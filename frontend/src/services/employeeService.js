@@ -24,3 +24,8 @@ export const deleteEmployee = async (id) => {
   const response = await api.delete(`/employees/${id}`);
   return response.data.data;
 };
+
+export const registerFace = async (id, images) => {
+  const response = await api.post(`/employees/${id}/register-face`, { images });
+  return response.data;
+};

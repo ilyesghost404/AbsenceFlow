@@ -1,15 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { 
   ShieldCheck, Lock, Smartphone, Monitor, Globe, Clock, 
-  Trash2, AlertTriangle, Key, LogIn, ChevronRight, Server
+  Trash2, AlertTriangle, Key, LogIn, ChevronRight, Server,
+  Loader2, RefreshCw
 } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import Modal from '../components/Modal';
+import FaceRegistration from '../components/FaceRegistration';
+import CameraCapture from '../components/CameraCapture';
 
 const SecuritySettings = () => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState([]);
   const [loginHistory, setLoginHistory] = useState([]);
@@ -25,9 +31,19 @@ const SecuritySettings = () => {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [isUpdating2FA, setIsUpdating2FA] = useState(false);
 
+  // Face ID biometrics state
+  const [faceStatus, setFaceStatus] = useState({ registered: false });
+  const [isFaceModalOpen, setIsFaceModalOpen] = useState(false);
+  const [faceModalStep, setFaceModalStep] = useState(0); // 0: Verify Old Face, 1: Register/Update Face
+  const [verifyToken, setVerifyToken] = useState('');
+  const [verifyError, setVerifyError] = useState('');
+  const [verifying, setVerifying] = useState(false);
+
   useEffect(() => {
-    fetchSecurityData();
-  }, []);
+    if (user) {
+      fetchSecurityData();
+    }
+  }, [user]);
 
   useEffect(() => {
     let score = 0;
@@ -48,18 +64,69 @@ const SecuritySettings = () => {
     }
   }, [newPassword]);
 
+  const handleOpenFaceModal = (isUpdate) => {
+    setVerifyToken('');
+    setVerifyError('');
+    setVerifying(false);
+    if (isUpdate) {
+      setFaceModalStep(0); // must verify identity first
+      setIsFaceModalOpen(true);
+    } else {
+      setFaceModalStep(1); // skip to register directly
+      setIsFaceModalOpen(true);
+    }
+  };
+
+  const handleVerifyCurrentFace = async (base64Image) => {
+    setVerifying(true);
+    setVerifyError('');
+
+    try {
+      const res = await api.post('/security/verify-face', { image: base64Image });
+      if (res.data.verified) {
+        setVerifyToken(res.data.verifyToken);
+        toast.success('Identity verified! Please register your new face profile.');
+        setFaceModalStep(1); // Proceed to register step
+      } else {
+        setVerifyError(res.data.message || 'Face mismatch. Identity verification failed.');
+        setFaceModalStep(0);
+      }
+    } catch (err) {
+      console.error('Face verify error:', err);
+      setVerifyError(err.response?.data?.message || 'Face verification failed. Please try again.');
+      setFaceModalStep(0);
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleFaceSuccess = (score) => {
+    setIsFaceModalOpen(false);
+    fetchSecurityData(); // reload status
+  };
+
   const fetchSecurityData = async () => {
     try {
       setLoading(true);
-      const [sessionsRes, historyRes, meRes] = await Promise.all([
+      const requests = [
         api.get('/users/sessions'),
         api.get('/users/login-history'),
         api.get('/users/me')
-      ]);
+      ];
 
-      if (sessionsRes.data.success) setSessions(sessionsRes.data.data);
-      if (historyRes.data.success) setLoginHistory(historyRes.data.data);
-      if (meRes.data.success) setTwoFactorEnabled(meRes.data.data.two_factor_enabled);
+      if (user?.role === 'employee') {
+        requests.push(api.get(`/security/face-status/${user.employee_id}`));
+      }
+
+      const results = await Promise.all(requests);
+
+      if (results[0].data.success) setSessions(results[0].data.data);
+      if (results[1].data.success) setLoginHistory(results[1].data.data);
+      if (results[2].data.success) setTwoFactorEnabled(results[2].data.data.two_factor_enabled);
+      
+      if (user?.role === 'employee' && results[3]) {
+        setFaceStatus(results[3].data);
+      }
     } catch (error) {
       console.error('Error fetching security data:', error);
       toast.error('Failed to load security settings');
@@ -216,6 +283,73 @@ const SecuritySettings = () => {
               </button>
             </div>
           </Card>
+
+          {/* Face ID Security Card */}
+          {user?.role === 'employee' && (
+            <Card className="p-6 border-slate-200">
+              <div className="flex items-center gap-4 mb-6 pb-4 border-b border-slate-100">
+                <div className="w-12 h-12 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center text-slate-600">
+                  <ShieldCheck size={24} className="text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800">Face ID Biometrics</h3>
+                  <p className="text-xs text-slate-500 font-medium">Verify your identity using face recognition</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                  <span className="text-sm font-semibold text-slate-500">Status</span>
+                  {faceStatus.registered ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Registered
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                      Not Registered
+                    </span>
+                  )}
+                </div>
+
+                {faceStatus.registered && (
+                  <>
+                    <div className="flex items-center justify-between text-xs px-2">
+                      <span className="text-slate-400 font-medium">Registered On</span>
+                      <span className="font-bold text-slate-700">
+                        {new Date(faceStatus.registeredAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs px-2">
+                      <span className="text-slate-400 font-medium">Quality Score</span>
+                      <span className="font-extrabold text-emerald-600">
+                        {faceStatus.qualityScore ? Math.round(faceStatus.qualityScore) : '—'}%
+                      </span>
+                    </div>
+                  </>
+                )}
+
+                <div className="pt-2">
+                  {faceStatus.registered ? (
+                    <Button 
+                      variant="primary" 
+                      onClick={() => handleOpenFaceModal(true)} 
+                      className="w-full justify-center rounded-xl font-bold py-2.5"
+                    >
+                      Update Face ID
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant="success" 
+                      onClick={() => handleOpenFaceModal(false)} 
+                      className="w-full justify-center rounded-xl font-bold py-2.5 shadow-md shadow-emerald-500/10"
+                    >
+                      Register Face ID
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </Card>
+          )}
         </div>
 
         {/* Right Column */}
@@ -375,6 +509,48 @@ const SecuritySettings = () => {
           </Card>
         </div>
       </div>
+
+      {/* Face ID Capture & Verification Modal */}
+      <Modal 
+        isOpen={isFaceModalOpen} 
+        onClose={() => { setIsFaceModalOpen(false); }} 
+        title={faceModalStep === 0 ? "Verify Your Identity" : "Register Face ID Profile"}
+        size="md"
+      >
+        {faceModalStep === 0 && (
+          <div className="flex flex-col items-center text-center space-y-6">
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 w-full">
+              <h4 className="font-bold text-slate-800 text-sm">Step 1: Current Face Verification</h4>
+              <p className="text-slate-500 text-xs mt-1">
+                For security, we must verify your current facial profile before permitting updates.
+              </p>
+            </div>
+
+            {verifyError && (
+              <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4 text-xs text-rose-600 flex items-center gap-2 w-full text-left">
+                <AlertTriangle size={18} className="flex-shrink-0" />
+                <span>{verifyError}</span>
+              </div>
+            )}
+
+            <CameraCapture
+              onCapture={handleVerifyCurrentFace}
+              facingMode="user"
+              showGuide={true}
+              disabled={verifying}
+              actionButtonLabel={verifying ? 'Verifying...' : 'Verify Identity'}
+            />
+          </div>
+        )}
+
+        {faceModalStep === 1 && (
+          <FaceRegistration
+            employeeId={user?.employee_id}
+            verifyToken={verifyToken}
+            onSuccess={handleFaceSuccess}
+          />
+        )}
+      </Modal>
     </div>
   );
 };

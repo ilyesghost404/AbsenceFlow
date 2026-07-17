@@ -11,6 +11,7 @@ import LoadingSpinner from '../LoadingSpinner';
 import { checkIn, checkOut } from '../../services/presenceService';
 import { getAttendance } from '../../services/attendanceService';
 import { useAuth } from '../../context/AuthContext';
+import AttendanceVerifyModal from './AttendanceVerifyModal';
 
 const EmployeeAttendanceView = () => {
   const { user } = useAuth();
@@ -20,6 +21,8 @@ const EmployeeAttendanceView = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [verifyModalOpen, setVerifyModalOpen] = useState(false);
+  const [verifyType, setVerifyType] = useState('check-in');
 
   const fetchHistory = useCallback(async () => {
     if (!employeeId) return;
@@ -43,32 +46,18 @@ const EmployeeAttendanceView = () => {
     fetchHistory();
   }, [fetchHistory]);
 
-  const handleCheckIn = async () => {
-    if (!employeeId) return;
-    try {
-      setActionLoading(true);
-      await checkIn(employeeId);
-      toast.success("Checked in successfully!");
-      fetchHistory();
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Check-in failed");
-    } finally {
-      setActionLoading(false);
-    }
+  const handleCheckIn = () => {
+    setVerifyType('check-in');
+    setVerifyModalOpen(true);
   };
 
-  const handleCheckOut = async () => {
-    if (!employeeId) return;
-    try {
-      setActionLoading(true);
-      await checkOut(employeeId);
-      toast.success("Checked out successfully!");
-      fetchHistory();
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Check-out failed");
-    } finally {
-      setActionLoading(false);
-    }
+  const handleCheckOut = () => {
+    setVerifyType('check-out');
+    setVerifyModalOpen(true);
+  };
+
+  const handleVerifySuccess = () => {
+    fetchHistory();
   };
 
   const todayStr = new Date().toISOString().split('T')[0];
@@ -266,6 +255,14 @@ const EmployeeAttendanceView = () => {
           <Table columns={columns} data={history} className="border-0 rounded-none" />
         )}
       </Card>
+
+      <AttendanceVerifyModal
+        isOpen={verifyModalOpen}
+        onClose={() => setVerifyModalOpen(false)}
+        type={verifyType}
+        employeeId={employeeId}
+        onSuccess={handleVerifySuccess}
+      />
     </div>
   );
 };

@@ -54,7 +54,16 @@ npm install
 npm start
 ```
 
-4. Set up the frontend:
+4. Set up the Python Local AI Face Service:
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate
+pip install opencv-python insightface onnxruntime torch torchvision numpy pillow flask flask-cors python-dotenv
+python local_ai_service.py
+```
+
+5. Set up the frontend:
 ```bash
 cd frontend
 npm install

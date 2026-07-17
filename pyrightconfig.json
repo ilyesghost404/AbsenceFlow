@@ -1,0 +1,7 @@
+{
+  "venvPath": "/home/ilyesghost/Documents/AbsenceFlow/backend",
+  "venv": "venv",
+  "extraPaths": [
+    "/home/ilyesghost/Documents/AbsenceFlow/backend/Silent-Face-Anti-Spoofing"
+  ]
+}

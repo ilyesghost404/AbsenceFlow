@@ -1,3 +1,4 @@
+// Reload trigger: environment variables updated
 const app = require("./app");
 const { checkDatabaseConnection } = require("./config/database");
 const { runAttendanceScheduler } = require("./services/attendanceScheduler");

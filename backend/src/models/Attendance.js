@@ -183,7 +183,8 @@ class Attendance {
         employees.last_name,
         attendance.check_in,
         attendance.check_out,
-        attendance.status
+        attendance.status,
+        attendance.face_confidence
       FROM employees
       LEFT JOIN attendance ON employees.id = attendance.employee_id AND attendance.date = CURRENT_DATE
       WHERE employees.first_name ILIKE $1 OR employees.last_name ILIKE $1 OR employees.matricule ILIKE $1
@@ -274,6 +275,77 @@ class Attendance {
       ORDER BY date DESC
     `, [employeeId, year, month]);
     return result.rows;
+  }
+
+  static async checkInWithAI(employeeId, confidence, qrSessionId, deviceInfo) {
+    const existingResult = await db.query(
+      `SELECT * FROM attendance 
+       WHERE employee_id = $1 AND date = CURRENT_DATE`,
+      [employeeId]
+    );
+
+    if (existingResult.rows.length > 0) {
+      if (existingResult.rows[0].check_in) {
+        throw new Error('Employee already checked in today');
+      }
+      
+      const result = await db.query(
+        `UPDATE attendance 
+         SET check_in = CURRENT_TIME, 
+             status = 'Present',
+             face_verified = true,
+             qr_verified = true,
+             face_confidence = $2,
+             verification_method = 'AI_FACE_QR',
+             qr_session_id = $3,
+             device_information = $4,
+             verification_timestamp = CURRENT_TIMESTAMP
+         WHERE employee_id = $1 AND date = CURRENT_DATE
+         RETURNING *`,
+        [employeeId, confidence, qrSessionId, deviceInfo]
+      );
+      return result.rows[0];
+    }
+
+    const result = await db.query(
+      `INSERT INTO attendance (employee_id, date, check_in, status, face_verified, qr_verified, face_confidence, verification_method, qr_session_id, device_information, verification_timestamp)
+       VALUES ($1, CURRENT_DATE, CURRENT_TIME, 'Present', true, true, $2, 'AI_FACE_QR', $3, $4, CURRENT_TIMESTAMP)
+       RETURNING *`,
+      [employeeId, confidence, qrSessionId, deviceInfo]
+    );
+    return result.rows[0];
+  }
+
+  static async checkOutWithAI(employeeId, confidence, qrSessionId, deviceInfo) {
+    const existingResult = await db.query(
+      `SELECT * FROM attendance 
+       WHERE employee_id = $1 AND date = CURRENT_DATE`,
+      [employeeId]
+    );
+
+    if (existingResult.rows.length === 0) {
+      throw new Error('No attendance record found for today');
+    }
+
+    if (existingResult.rows[0].check_out) {
+      throw new Error('Employee already checked out today');
+    }
+
+    const result = await db.query(
+      `UPDATE attendance 
+       SET check_out = CURRENT_TIME,
+           face_verified = true,
+           qr_verified = true,
+           face_confidence = $2,
+           verification_method = 'AI_FACE_QR',
+           qr_session_id = $3,
+           device_information = $4,
+           verification_timestamp = CURRENT_TIMESTAMP
+       WHERE employee_id = $1 AND date = CURRENT_DATE
+       RETURNING *`,
+      [employeeId, confidence, qrSessionId, deviceInfo]
+    );
+    return result.rows[0];
   }
 }
 

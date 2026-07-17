@@ -1,5 +1,13 @@
 const Attendance = require("../models/Attendance");
+const FaceProfile = require("../models/FaceProfile");
+const QrSession = require("../models/QrSession");
 const { getHolidays, toDateString } = require("../services/attendanceService");
+const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const UAParser = require("ua-parser-js");
+
+const JWT_SECRET = process.env.JWT_SECRET || "absenceflow_jwt_secret_key_12345";
+const processingTokens = new Set();
 
 const getAttendance = async (req, res) => {
   try {
@@ -247,6 +255,293 @@ const getEmployeeAttendanceByMonth = async (req, res) => {
   }
 };
 
+const verifyFace = async (req, res) => {
+  try {
+    const { image, employeeId } = req.body;
+
+    if (!employeeId || !image) {
+      return res.status(400).json({ success: false, message: "Employee ID and image are required" });
+    }
+
+    const profile = await FaceProfile.getByEmployeeId(employeeId);
+    if (!profile) {
+      return res.status(400).json({ success: false, message: "No face profile registered." });
+    }
+
+    const storedEmbedding = profile.face_embedding;
+    if (!storedEmbedding || !Array.isArray(storedEmbedding)) {
+      return res.status(500).json({ success: false, message: "Biometric profile is missing or malformed." });
+    }
+
+    // Call Local AI Service
+    let aiResponse;
+    try {
+      aiResponse = await fetch("http://localhost:5001/api/ai/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image, embedding: storedEmbedding })
+      });
+    } catch (err) {
+      console.error("❌ AI Microservice connection failed:", err);
+      return res.status(502).json({ success: false, message: "AI Face Microservice is offline or unreachable." });
+    }
+
+    const aiResult = await aiResponse.json();
+    if (!aiResponse.ok || !aiResult.success) {
+      const reason = aiResult.reason || "Face verification failed";
+      return res.status(400).json({ success: false, message: reason, reason: aiResult.reason });
+    }
+
+    if (!aiResult.liveness) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Liveness verification failed.", 
+        reason: "LIVENESS_FAILED" 
+      });
+    }
+
+    if (!aiResult.match) {
+      return res.status(400).json({ 
+        success: false, 
+        message: aiResult.message || "Face recognition failed.", 
+        reason: aiResult.reason || "FACE_NOT_MATCHED"
+      });
+    }
+
+    // Generate signed faceToken
+    const faceToken = jwt.sign(
+      { employeeId, faceVerified: true, confidence: aiResult.confidence },
+      process.env.JWT_SECRET || "absenceflow_jwt_secret_key_12345",
+      { expiresIn: '10m' }
+    );
+
+    await FaceProfile.recordVerification(employeeId);
+
+    res.json({
+      success: true,
+      match: true,
+      confidence: aiResult.confidence,
+      liveness: true,
+      faceToken
+    });
+  } catch (error) {
+    console.error("Local AI verifyFace Error:", error);
+    res.status(500).json({ success: false, message: "An error occurred during AI face verification." });
+  }
+};
+
+const createQr = async (req, res) => {
+  try {
+    // Manager or Admin only
+    if (req.user.role !== 'admin' && req.user.role !== 'manager') {
+      return res.status(403).json({ success: false, message: "Access forbidden: only managers or admins can generate QR codes" });
+    }
+
+    // Generate secure token
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 1000); // 1 minute
+
+    const qrSession = await QrSession.create(1, token, expiresAt);
+
+    res.status(201).json({
+      success: true,
+      qrToken: token,
+      expiresAt
+    });
+  } catch (error) {
+    console.error("Create QR error:", error);
+    res.status(500).json({ success: false, message: "Failed to generate QR code session" });
+  }
+};
+
+const verifyQr = async (req, res) => {
+  console.log("🔍 [Verify QR Endpoint] Received verify request. Token:", req.body.qrToken);
+  try {
+    const { qrToken } = req.body;
+    if (!qrToken) {
+      return res.status(400).json({ success: false, message: "QR token is required" });
+    }
+
+    if (processingTokens.has(qrToken)) {
+      return res.status(429).json({ success: false, message: "QR code is currently being processed. Please wait." });
+    }
+
+    const session = await QrSession.getByToken(qrToken);
+    if (!session) {
+      return res.status(400).json({ success: false, message: "Invalid or expired QR code" });
+    }
+
+    if (session.used) {
+      return res.status(400).json({ success: false, message: "This QR code has already been used" });
+    }
+
+    const expiry = new Date(session.expires_at);
+    if (expiry < new Date()) {
+      return res.status(400).json({ success: false, message: "This QR code has expired" });
+    }
+
+    res.json({ success: true, valid: true });
+  } catch (error) {
+    console.error("Verify QR error:", error);
+    res.status(500).json({ success: false, message: "Failed to verify QR code" });
+  }
+};
+
+const checkInWithAI = async (req, res) => {
+  console.log("🔍 [Check In AI Endpoint] Received request. faceToken length:", req.body.faceToken?.length, "qrToken:", req.body.qrToken);
+  const { faceToken, qrToken, deviceInfo } = req.body;
+  if (!faceToken || !qrToken) {
+    return res.status(400).json({ success: false, message: "Face verification and QR verification tokens are required" });
+  }
+
+  if (processingTokens.has(qrToken)) {
+    return res.status(429).json({ success: false, message: "Check-in is currently processing. Please wait." });
+  }
+  processingTokens.add(qrToken);
+
+  try {
+    // Decode and verify faceToken
+    let decodedFace;
+    try {
+      decodedFace = jwt.verify(faceToken, JWT_SECRET);
+    } catch (err) {
+      return res.status(400).json({ success: false, message: "Invalid or expired face verification token. Please verify your face again." });
+    }
+
+    // Security: Verify faceToken matches the logged-in user
+    if (req.user.role === 'employee' && req.user.employee_id !== decodedFace.employeeId) {
+      return res.status(403).json({ success: false, message: "Biometric profile mismatch. You can only check in for yourself." });
+    }
+
+    // Verify qrToken
+    const session = await QrSession.getByToken(qrToken);
+    if (!session) {
+      return res.status(400).json({ success: false, message: "Invalid or expired QR code" });
+    }
+    if (session.used) {
+      return res.status(400).json({ success: false, message: "This QR code has already been used" });
+    }
+    const expiry = new Date(session.expires_at);
+    if (expiry < new Date()) {
+      return res.status(400).json({ success: false, message: "This QR code has expired" });
+    }
+
+    const employeeId = decodedFace.employeeId;
+
+    // Reject attendance on holidays or weekends (existing rules)
+    const today = new Date();
+    const todayStr = toDateString(today);
+    const dayOfWeek = today.getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      return res.status(400).json({ success: false, message: "Cannot check in on a weekend." });
+    }
+    const holidays = await getHolidays(todayStr, todayStr);
+    if (holidays.length > 0) {
+      return res.status(400).json({ success: false, message: "Cannot check in on a public holiday." });
+    }
+
+    // Get device info
+    const uap = new UAParser(req.headers["user-agent"]);
+    const browser = uap.getBrowser().name || "Unknown Browser";
+    const os = uap.getOS().name || "Unknown OS";
+    const finalDeviceInfo = deviceInfo || `${browser} on ${os}`;
+
+    // Perform Check-in in DB
+    const attendance = await Attendance.checkInWithAI(
+      employeeId,
+      decodedFace.confidence,
+      session.id,
+      finalDeviceInfo
+    );
+
+    // Mark QR session as used
+    await QrSession.markAsUsed(session.id);
+
+    res.json({ success: true, data: attendance });
+  } catch (error) {
+    console.error("AI Check-in error:", error);
+    if (error.message === "Employee already checked in today") {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    res.status(500).json({ success: false, message: "Failed to check in via AI/QR" });
+  } finally {
+    processingTokens.delete(qrToken);
+  }
+};
+
+const checkOutWithAI = async (req, res) => {
+  console.log("🔍 [Check Out AI Endpoint] Received request. faceToken length:", req.body.faceToken?.length, "qrToken:", req.body.qrToken);
+  const { faceToken, qrToken, deviceInfo } = req.body;
+  if (!faceToken || !qrToken) {
+    return res.status(400).json({ success: false, message: "Face verification and QR verification tokens are required" });
+  }
+
+  if (processingTokens.has(qrToken)) {
+    return res.status(429).json({ success: false, message: "Check-out is currently processing. Please wait." });
+  }
+  processingTokens.add(qrToken);
+
+  try {
+    // Decode and verify faceToken
+    let decodedFace;
+    try {
+      decodedFace = jwt.verify(faceToken, JWT_SECRET);
+    } catch (err) {
+      return res.status(400).json({ success: false, message: "Invalid or expired face verification token. Please verify your face again." });
+    }
+
+    // Security: Verify faceToken matches the logged-in user
+    if (req.user.role === 'employee' && req.user.employee_id !== decodedFace.employeeId) {
+      return res.status(403).json({ success: false, message: "Biometric profile mismatch. You can only check out for yourself." });
+    }
+
+    // Verify qrToken
+    const session = await QrSession.getByToken(qrToken);
+    if (!session) {
+      return res.status(400).json({ success: false, message: "Invalid or expired QR code" });
+    }
+    if (session.used) {
+      return res.status(400).json({ success: false, message: "This QR code has already been used" });
+    }
+    const expiry = new Date(session.expires_at);
+    if (expiry < new Date()) {
+      return res.status(400).json({ success: false, message: "This QR code has expired" });
+    }
+
+    const employeeId = decodedFace.employeeId;
+
+    // Get device info
+    const uap = new UAParser(req.headers["user-agent"]);
+    const browser = uap.getBrowser().name || "Unknown Browser";
+    const os = uap.getOS().name || "Unknown OS";
+    const finalDeviceInfo = deviceInfo || `${browser} on ${os}`;
+
+    // Perform Check-out in DB
+    const attendance = await Attendance.checkOutWithAI(
+      employeeId,
+      decodedFace.confidence,
+      session.id,
+      finalDeviceInfo
+    );
+
+    // Mark QR session as used
+    await QrSession.markAsUsed(session.id);
+
+    res.json({ success: true, data: attendance });
+  } catch (error) {
+    console.error("AI Check-out error:", error);
+    if (
+      error.message === "No attendance record found for today" ||
+      error.message === "Employee already checked out today"
+    ) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    res.status(500).json({ success: false, message: "Failed to check out via AI/QR" });
+  } finally {
+    processingTokens.delete(qrToken);
+  }
+};
+
 module.exports = {
   getAttendance,
   getAttendanceById,
@@ -258,5 +553,10 @@ module.exports = {
   getTodayAttendance,
   getAnomalies,
   validateAnomaly,
-  getEmployeeAttendanceByMonth
+  getEmployeeAttendanceByMonth,
+  verifyFace,
+  createQr,
+  verifyQr,
+  checkInWithAI,
+  checkOutWithAI
 };

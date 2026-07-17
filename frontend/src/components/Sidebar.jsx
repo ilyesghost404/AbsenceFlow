@@ -12,7 +12,8 @@ import {
   LayoutDashboard,
   CalendarDays,
   User,
-  ShieldCheck
+  ShieldCheck,
+  QrCode
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -29,6 +30,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         { path: '/employees', label: 'Employees', icon: Users },
         { path: '/users', label: 'Users', icon: Users },
         { path: '/reports', label: 'Reports', icon: BarChart3 },
+        { path: '/attendance-verification', label: 'QR Portal', icon: QrCode },
         { path: '/admin/security', label: 'Security Center', icon: ShieldCheck }
       );
     } else if (user?.role === 'manager') {
@@ -36,6 +38,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { path: '/employees', label: 'Employees', icon: Users },
         { path: '/attendance', label: 'Attendance', icon: CalendarCheck },
+        { path: '/attendance-verification', label: 'QR Portal', icon: QrCode },
         { path: '/leave-requests', label: 'Leave Requests', icon: CalendarDays },
         { path: '/reports', label: 'Reports', icon: BarChart3 },
         { path: '/holidays', label: 'Holidays', icon: CalendarRange }

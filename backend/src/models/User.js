@@ -24,6 +24,7 @@ class User {
         u.updated_at,
         u.locked_until,
         u.two_factor_enabled,
+        u.face_id_enabled,
         (SELECT COUNT(*)::int FROM user_sessions us WHERE us.user_id = u.id AND us.expires_at > CURRENT_TIMESTAMP) as active_sessions,
         (SELECT MAX(lh.login_time) FROM login_history lh WHERE lh.user_id = u.id AND lh.success = true) as last_login,
         CONCAT(e.first_name, ' ', e.last_name) AS employee_name
@@ -86,6 +87,7 @@ class User {
         u.account_status,
         u.created_at, 
         u.updated_at,
+        u.face_id_enabled,
         CONCAT(e.first_name, ' ', e.last_name) AS employee_name
       FROM users u
       LEFT JOIN employees e ON u.employee_id = e.id
@@ -370,6 +372,38 @@ class User {
           updated_at = CURRENT_TIMESTAMP
       WHERE id = $2
     `, [passwordHash, userId]);
+  }
+
+  static async savePasswordDuringActivation(userId, passwordHash) {
+    await db.query(`
+      UPDATE users 
+      SET password_hash = $1, 
+          account_status = 'Pending_Face', 
+          is_verified = TRUE,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+    `, [passwordHash, userId]);
+  }
+
+  static async completeActivation(userId) {
+    await db.query(`
+      UPDATE users
+      SET account_status = 'Active', 
+          activation_token = NULL, 
+          activation_token_expiry = NULL, 
+          activated_at = CURRENT_TIMESTAMP, 
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+    `, [userId]);
+  }
+
+  static async updateFaceIdEnabled(userId, enabled) {
+    await db.query(`
+      UPDATE users
+      SET face_id_enabled = $1,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+    `, [enabled, userId]);
   }
 }
 

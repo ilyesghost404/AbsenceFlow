@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const FaceProfile = require("../models/FaceProfile");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
@@ -28,6 +29,10 @@ const login = async (req, res) => {
 
     if (!user.is_active) {
       return res.status(403).json({ success: false, message: "Account is disabled. Please contact your administrator." });
+    }
+
+    if (user.account_status === 'Pending' || user.account_status === 'Pending_Face') {
+      return res.status(403).json({ success: false, message: "Account activation is incomplete. Please complete activation." });
     }
 
     if (!user.is_verified) {
@@ -94,7 +99,8 @@ const login = async (req, res) => {
           email: user.email,
           role: user.role,
           employee_id: user.employee_id,
-          employee_name: user.employee_name
+          employee_name: user.employee_name,
+          face_id_enabled: user.face_id_enabled
         }
       }
     });
@@ -313,7 +319,8 @@ const getMe = async (req, res) => {
         role: user.role,
         employee_id: user.employee_id,
         employee_name: user.employee_name,
-        is_active: user.is_active
+        is_active: user.is_active,
+        face_id_enabled: user.face_id_enabled
       }
     });
   } catch (error) {
@@ -431,21 +438,28 @@ const activateAccount = async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    await User.activateAccount(user.id, passwordHash);
-    
-    // Also mark email as verified just in case
-    await User.verifyUserEmail(user.id);
 
-    // Log activity
-    await User.recordActivity(
-      null, // Self-action
-      "account_activated",
-      user.id,
-      `User '${user.username}' activated their account.`,
-      req.ip || req.headers["x-forwarded-for"] || req.socket.remoteAddress
-    );
+    let requiresFace = false;
+    if (user.employee_id) {
+      const faceProfile = await FaceProfile.getByEmployeeId(user.employee_id);
+      requiresFace = !faceProfile || faceProfile.status !== 'active';
+    }
 
-    res.json({ success: true, message: "Account activated successfully" });
+    if (requiresFace) {
+      await User.savePasswordDuringActivation(user.id, passwordHash);
+      res.json({ 
+        success: true, 
+        message: "Password set. Biometric registration required.", 
+        data: { employeeId: user.employee_id, requiresFace: true } 
+      });
+    } else {
+      await User.activateAccount(user.id, passwordHash);
+      res.json({ 
+        success: true, 
+        message: "Account activated successfully.", 
+        data: { employeeId: user.employee_id || null, requiresFace: false } 
+      });
+    }
   } catch (error) {
     console.error("ActivateAccount error:", error);
     res.status(500).json({ success: false, message: "Failed to activate account" });
@@ -728,6 +742,45 @@ const adminRevokeUserSessions = async (req, res) => {
   }
 };
 
+const skipFaceIdSetup = async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ success: false, message: "Activation token is required" });
+    }
+
+    const user = await User.getByActivationToken(token);
+    if (!user) {
+      return res.status(400).json({ success: false, message: "Invalid or expired activation token" });
+    }
+
+    // Complete user activation (set status to Active, clear activation token)
+    await User.completeActivation(user.id);
+    
+    // Explicitly set face_id_enabled to false for this user
+    await User.updateFaceIdEnabled(user.id, false);
+
+    // Record activity log
+    const ipAddress = req.ip || req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+    await User.recordActivity(
+      null,
+      "account_activated",
+      user.id,
+      `User '${user.username}' activated account and skipped Face ID setup.`,
+      ipAddress
+    );
+
+    res.json({ 
+      success: true, 
+      message: "Account activated successfully. Face ID setup skipped." 
+    });
+  } catch (error) {
+    console.error("SkipFaceIdSetup error:", error);
+    res.status(500).json({ success: false, message: "Failed to skip Face ID setup" });
+  }
+};
+
 module.exports = {
   login,
   forgotPassword,
@@ -748,5 +801,6 @@ module.exports = {
   updateUser,
   deleteUser,
   activateAccount,
-  verifyActivationToken
+  verifyActivationToken,
+  skipFaceIdSetup
 };

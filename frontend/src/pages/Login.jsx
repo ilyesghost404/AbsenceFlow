@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Lock, Mail, Eye, EyeOff, CalendarRange, Loader2 } from 'lucide-react';
 import Button from '../components/Button';
@@ -14,6 +14,14 @@ const Login = () => {
 
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.get('expired') === 'true') {
+      setError('Your session has expired. Please sign in again.');
+    }
+  }, [location]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

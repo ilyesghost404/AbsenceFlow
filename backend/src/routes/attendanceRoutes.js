@@ -11,7 +11,12 @@ const {
   getTodayAttendance,
   getAnomalies,
   validateAnomaly,
-  getEmployeeAttendanceByMonth
+  getEmployeeAttendanceByMonth,
+  verifyFace,
+  createQr,
+  verifyQr,
+  checkInWithAI,
+  checkOutWithAI
 } = require("../controllers/attendanceController");
 const { requireAuth, authorizeRoles } = require("../middleware/authMiddleware");
 
@@ -39,6 +44,13 @@ router.get("/:id", requireManagerOrAdmin, getAttendanceById);
 router.post("/", requireManagerOrAdmin, createAttendance);
 router.put("/:id", requireManagerOrAdmin, updateAttendance);
 router.delete("/:id", requireManagerOrAdmin, deleteAttendance);
+
+// AI Face & QR Code verification routes
+router.post("/verify-face", requireAuth, verifyFace);
+router.post("/create-qr", requireAuth, authorizeRoles("admin", "manager"), createQr);
+router.post("/verify-qr", requireAuth, verifyQr);
+router.post("/check-in", requireAuth, checkInWithAI);
+router.post("/check-out", requireAuth, checkOutWithAI);
 
 // Self-access or Manager/Admin endpoints
 router.post("/check-in/:employeeId", requireAuth, canAccessOrModifySelf, checkIn);

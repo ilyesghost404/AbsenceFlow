@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: `http://${window.location.hostname}:5000/api`,
+  baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -26,14 +26,18 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Clear stored credentials and force redirect to login
+      // Clear stored credentials
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       sessionStorage.removeItem('token');
       sessionStorage.removeItem('user');
-      // Only redirect if not already on login page
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      
+      // Prevent redirect to login if we are already on a public page
+      const publicPaths = ['/login', '/activate-account', '/forgot-password', '/reset-password', '/verify-reset-code', '/verify-email'];
+      const isPublicPath = publicPaths.some(path => window.location.pathname.startsWith(path));
+      
+      if (!isPublicPath) {
+        window.location.href = '/login?expired=true';
       }
     }
     return Promise.reject(error);

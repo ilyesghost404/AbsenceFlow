@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
-import { Plus, Edit2, Trash2, Users, Search, Filter, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, Search, Filter, X, Camera } from 'lucide-react';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
+import RegisterFaceModal from '../components/RegisterFaceModal';
 import LoadingSpinner, { SkeletonTable } from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import Pagination from '../components/Pagination';
@@ -49,6 +50,7 @@ const Employees = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
+  const [registeringFaceEmployee, setRegisteringFaceEmployee] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
   
@@ -169,7 +171,9 @@ const Employees = () => {
   }, [employees]);
 
   const getInitials = (firstName, lastName) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    const f = firstName ? firstName.charAt(0) : '';
+    const l = lastName ? lastName.charAt(0) : '';
+    return `${f}${l}`.toUpperCase();
   };
 
   const hasActiveFilters = searchTerm || departmentFilter;
@@ -317,6 +321,13 @@ const Employees = () => {
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                           <button
+                            onClick={() => setRegisteringFaceEmployee(employee)}
+                            className="p-2 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+                            title="Register Face"
+                          >
+                            <Camera size={16} />
+                          </button>
+                          <button
                             onClick={() => handleEdit(employee)}
                             className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
                             title="Edit"
@@ -447,6 +458,12 @@ const Employees = () => {
           </div>
         </form>
       </Modal>
+
+      <RegisterFaceModal
+        isOpen={!!registeringFaceEmployee}
+        onClose={() => setRegisteringFaceEmployee(null)}
+        employee={registeringFaceEmployee}
+      />
     </div>
   );
 };

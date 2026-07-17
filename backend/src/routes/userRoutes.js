@@ -20,7 +20,8 @@ const {
   updateUser, 
   deleteUser,
   activateAccount,
-  verifyActivationToken
+  verifyActivationToken,
+  skipFaceIdSetup
 } = require("../controllers/userController");
 const { requireAuth, authorizeRoles } = require("../middleware/authMiddleware");
 
@@ -29,6 +30,7 @@ router.post("/login", login);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 router.post("/activate-account", activateAccount);
+router.post("/activate-account/skip-face", skipFaceIdSetup);
 router.get("/activate-account/verify", verifyActivationToken);
 router.post("/verify-email", verifyEmail);
 

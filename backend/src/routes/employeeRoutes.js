@@ -5,7 +5,8 @@ const {
     getEmployeeById,
     createEmployee,
     updateEmployee,
-    deleteEmployee
+    deleteEmployee,
+    registerFace
 } = require("../controllers/employeeController");
 const { requireAuth, authorizeRoles } = require("../middleware/authMiddleware");
 
@@ -25,6 +26,7 @@ router.get("/:id", requireAuth, canViewEmployee, getEmployeeById);
 router.post("/", requireAuth, authorizeRoles("admin", "manager"), createEmployee);
 router.put("/:id", requireAuth, authorizeRoles("admin", "manager"), updateEmployee);
 router.delete("/:id", requireAuth, authorizeRoles("admin", "manager"), deleteEmployee);
+router.post("/:id/register-face", requireAuth, authorizeRoles("admin", "manager"), registerFace);
 
 module.exports = router;
 

@@ -105,7 +105,9 @@ const PresenceTab = () => {
   const paginatedData = filteredData.slice((page - 1) * limit, page * limit);
 
   const getInitials = (firstName, lastName) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    const f = firstName ? firstName.charAt(0) : '';
+    const l = lastName ? lastName.charAt(0) : '';
+    return `${f}${l}`.toUpperCase();
   };
 
   const statItems = [

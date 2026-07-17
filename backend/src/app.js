@@ -13,6 +13,7 @@ const userRoutes = require("./routes/userRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const authRoutes = require("./routes/authRoutes");
+const securityRoutes = require("./routes/securityRoutes");
 
 const app = express();
 
@@ -31,7 +32,8 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-app.use(express.json({ limit: "10kb" })); // Body limit to prevent large payload attacks
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 // Rate Limiting
 const isDev = process.env.NODE_ENV !== "production";
@@ -103,6 +105,32 @@ app.get("/", (req, res) => {
   });
 });
 
+// React Error Boundary Logger
+app.post("/api/log-error", (req, res) => {
+  const fs = require("fs");
+  const path = require("path");
+  const logPath = path.join(__dirname, "../react_crash.log");
+  const logContent = `
+[${new Date().toISOString()}]
+Error: ${req.body.error}
+Stack: ${req.body.stack}
+Info: ${req.body.info}
+--------------------------------------
+`;
+  try {
+    fs.appendFileSync(logPath, logContent, "utf8");
+  } catch (err) {
+    console.error("Failed to write to react_crash.log:", err);
+  }
+
+  console.error("\n🚨 [React Frontend Crash Exception] 🚨");
+  console.error("Error message:", req.body.error);
+  console.error("Stack trace:", req.body.stack);
+  console.error("Component Stack:", req.body.info);
+  console.error("--------------------------------------\n");
+  res.json({ success: true });
+});
+
 
 // PostgreSQL connection test
 app.get("/api/test-db", async (req, res) => {
@@ -129,6 +157,7 @@ app.get("/api/test-db", async (req, res) => {
 // User management and auth routes
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/security", securityRoutes);
 
 // Dashboard routes
 app.use("/api/dashboard", dashboardRoutes);

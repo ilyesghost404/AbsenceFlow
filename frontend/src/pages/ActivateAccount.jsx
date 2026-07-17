@@ -4,13 +4,15 @@ import { Lock, Eye, EyeOff, ShieldCheck, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import Button from '../components/Button';
+import FaceRegistration from '../components/FaceRegistration';
 
 const ActivateAccount = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [verificationStatus, setVerificationStatus] = useState('checking'); // checking | valid | invalid | success
+  const [verificationStatus, setVerificationStatus] = useState('checking'); // checking | valid | invalid | pending_face | success
+  const [employeeId, setEmployeeId] = useState(null);
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -52,9 +54,16 @@ const ActivateAccount = () => {
 
     try {
       setIsLoading(true);
-      await api.post('/users/activate-account', { token, password });
-      toast.success('Account activated successfully');
-      setVerificationStatus('success');
+      const res = await api.post('/users/activate-account', { token, password });
+      toast.success('Password created successfully');
+      
+      const { employeeId, requiresFace } = res.data.data;
+      if (requiresFace && employeeId) {
+        setEmployeeId(employeeId);
+        setVerificationStatus('pending_face');
+      } else {
+        setVerificationStatus('success');
+      }
     } catch (error) {
       console.error('Activation error:', error);
       toast.error(error.response?.data?.message || 'Failed to activate account. The link may be expired.');
@@ -87,6 +96,32 @@ const ActivateAccount = () => {
     );
   }
   
+  if (verificationStatus === 'pending_face') {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="bg-white py-8 px-6 shadow-xl shadow-slate-200/50 sm:rounded-3xl sm:px-10 border border-slate-100/80">
+            <div className="text-center mb-6">
+              <ShieldCheck className="mx-auto h-12 w-12 text-blue-600 mb-2" />
+              <h2 className="text-2xl font-bold text-slate-900">Secure Your Account</h2>
+              <p className="text-slate-500 text-xs mt-1">
+                Face ID registration is required to use secure attendance verification.
+              </p>
+            </div>
+            
+            <FaceRegistration
+              employeeId={employeeId}
+              token={token}
+              onSuccess={() => {
+                setVerificationStatus('success');
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (verificationStatus === 'success') {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">

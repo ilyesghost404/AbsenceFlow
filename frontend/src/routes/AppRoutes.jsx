@@ -21,6 +21,7 @@ import Settings from '../pages/Settings';
 import Profile from '../pages/Profile';
 import SecuritySettings from '../pages/SecuritySettings';
 import AdminSecurityCenter from '../pages/AdminSecurityCenter';
+import AttendanceVerification from '../pages/AttendanceVerification';
 
 const DashboardRouter = () => {
   const { user } = useAuth();
@@ -77,6 +78,7 @@ const AppRoutes = () => {
               <Route element={<ProtectedRoute allowedRoles={['manager', 'admin']} />}>
                 <Route path="/employees" element={<Employees />} />
                 <Route path="/reports" element={<Reports />} />
+                <Route path="/attendance-verification" element={<AttendanceVerification />} />
               </Route>
 
               {/* Admin only routes */}
