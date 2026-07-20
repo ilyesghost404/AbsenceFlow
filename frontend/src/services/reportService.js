@@ -61,7 +61,7 @@ export const exportToExcel = async (filters = {}) => {
     localStorage.getItem('token') || sessionStorage.getItem('token');
 
   const response = await fetch(
-    `/api/reports/export/excel?${params}`,
+    `${api.defaults.baseURL}/reports/export/excel?${params}`,
     {
       headers: {
         Authorization: token ? `Bearer ${token}` : '',

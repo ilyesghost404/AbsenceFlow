@@ -11,6 +11,7 @@ import Button from '../components/Button';
 import Modal from '../components/Modal';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Pagination from '../components/Pagination';
+import PasswordInput from '../components/PasswordInput';
 import { getUsers, createUser, updateUser, deleteUser } from '../services/userService';
 import { getEmployees } from '../services/employeeService';
 
@@ -309,16 +310,11 @@ const UserManagement = () => {
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Password (Leave blank to keep current)
               </label>
-              <div className="relative">
-                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-700 text-sm"
-                  placeholder="Leave blank to keep unchanged"
-                />
-              </div>
+              <PasswordInput
+                value={formData.password || ''}
+                onChange={(val) => setFormData({ ...formData, password: val })}
+                placeholder="Leave blank to keep unchanged"
+              />
             </div>
           )}
 
@@ -368,10 +364,20 @@ const UserManagement = () => {
             </div>
           )}
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button type="submit">Save User</Button>
-          </div>
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl">
+              <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={
+                  (formData.role === 'employee' && !formData.employee_id) ||
+                  (formData.password && !(formData.password.length >= 8 && /[A-Z]/.test(formData.password) && /[a-z]/.test(formData.password) && /[0-9]/.test(formData.password) && /[!@#$%^&*()[\]{}\\|;:'",.<>/?~_+-=]/.test(formData.password)))
+                }
+              >
+                {editingUser ? 'Save Changes' : 'Create User'}
+              </Button>
+            </div>
         </form>
       </Modal>
     </div>

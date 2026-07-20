@@ -80,6 +80,7 @@ export const AuthProvider = ({ children }) => {
         return receivedUser;
       }
     } catch (error) {
+      console.error('[AuthContext] Login Error:', error);
       throw new Error(error.response?.data?.message || 'Login failed. Please check your credentials.');
     }
   };

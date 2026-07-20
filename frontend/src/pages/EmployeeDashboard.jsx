@@ -8,6 +8,7 @@ import Card from '../components/Card';
 import StatsCard from '../components/StatsCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { getDashboardStats } from '../services/dashboardService';
+import { Link } from 'react-router-dom';
 
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return null;
@@ -85,12 +86,12 @@ const EmployeeDashboard = () => {
           </h1>
           <p className="text-slate-500 font-medium mt-1">Here is your personal absence overview and metrics</p>
         </div>
-        <a 
-          href="/leave-requests" 
+        <Link 
+          to="/leave-requests" 
           className="inline-flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-md shadow-blue-500/20 hover:shadow-blue-500/40"
         >
           Request Absence
-        </a>
+        </Link>
       </div>
 
       {/* Statistics Cards */}
@@ -134,9 +135,9 @@ const EmployeeDashboard = () => {
                 <Activity className="text-blue-600" size={20} />
                 Recent Activity
               </h3>
-              <a href="/leave-requests" className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors">
+              <Link to="/leave-requests" className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors">
                 View All <ChevronRight size={16} />
-              </a>
+              </Link>
             </div>
 
             {stats.recentAbsences && stats.recentAbsences.length > 0 ? (

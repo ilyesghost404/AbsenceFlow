@@ -5,11 +5,11 @@ import toast from 'react-hot-toast';
 import api from '../services/api';
 import Button from '../components/Button';
 import FaceRegistration from '../components/FaceRegistration';
+import PasswordInput from '../components/PasswordInput';
 
 const ActivateAccount = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState('checking'); // checking | valid | invalid | pending_face | success
   const [employeeId, setEmployeeId] = useState(null);
@@ -47,8 +47,9 @@ const ActivateAccount = () => {
       return;
     }
 
-    if (password.length < 8) {
-      toast.error('Password must be at least 8 characters long');
+    const isStrong = password.length >= 8 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /[0-9]/.test(password) && /[!@#$%^&*()[\]{}\\|;:'",.<>/?~_+-=]/.test(password);
+    if (!isStrong) {
+      toast.error('Please choose a stronger password that meets all requirements');
       return;
     }
 
@@ -161,53 +162,39 @@ const ActivateAccount = () => {
         <div className="bg-white py-8 px-4 shadow-xl shadow-slate-200/50 sm:rounded-2xl sm:px-10 border border-slate-100">
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label className="block text-sm font-medium text-slate-700">New Password</label>
-              <div className="mt-2 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-slate-400" />
-                </div>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all"
-                  placeholder="At least 8 characters"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">New Password</label>
+              <PasswordInput 
+                value={password} 
+                onChange={setPassword} 
+                disabled={isLoading}
+              />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">Confirm Password</label>
-              <div className="mt-2 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-slate-400" />
-                </div>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="block w-full pl-10 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all"
-                  placeholder="Confirm your password"
-                />
-              </div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Confirm Password</label>
+              <PasswordInput 
+                value={confirmPassword} 
+                onChange={setConfirmPassword} 
+                disabled={isLoading}
+                placeholder="Confirm your password"
+              />
             </div>
 
             <Button
               type="submit"
-              className="w-full justify-center py-3 text-base"
-              isLoading={isLoading}
-              icon={ShieldCheck}
+              className="w-full flex justify-center py-3"
+              disabled={
+                isLoading || 
+                !password || 
+                password !== confirmPassword ||
+                !(password.length >= 8 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /[0-9]/.test(password) && /[!@#$%^&*()[\]{}\\|;:'",.<>/?~_+-=]/.test(password))
+              }
             >
-              Activate Account
+              {isLoading ? (
+                <Loader2 className="animate-spin h-5 w-5 text-white" />
+              ) : (
+                'Set Password & Activate'
+              )}
             </Button>
           </form>
         </div>

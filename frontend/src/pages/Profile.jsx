@@ -12,6 +12,8 @@ import { useAuth } from '../context/AuthContext';
 import { getEmployeeById, updateEmployee } from '../services/employeeService';
 import { getDashboardStats } from '../services/dashboardService';
 
+import { useNavigate } from 'react-router-dom';
+
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return null;
   const cleanStr = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
@@ -33,6 +35,7 @@ const ProfileInfoRow = ({ icon: Icon, label, value }) => (
 
 const Profile = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [employee, setEmployee] = useState(null);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -147,7 +150,7 @@ const Profile = () => {
           <p className="text-slate-500 font-medium">View and manage your personal details</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="secondary" icon={ShieldCheck} onClick={() => window.location.href='/profile/security'} className="px-6">
+          <Button variant="secondary" icon={ShieldCheck} onClick={() => navigate('/profile/security')} className="px-6">
             Security Settings
           </Button>
           <Button icon={Edit2} onClick={handleEditClick} className="shadow-lg hover:shadow-blue-500/25 px-6">

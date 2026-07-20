@@ -1,14 +1,20 @@
 import { StrictMode, Component } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import { BrowserRouter, HashRouter } from 'react-router-dom'
 import AppRoutes from './routes/AppRoutes.jsx'
 import { Toaster } from 'react-hot-toast'
 
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+
+const Router = import.meta.env.VITE_IS_DESKTOP ? HashRouter : BrowserRouter;
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
-      <AppRoutes />
+      <Router>
+        <AppRoutes />
+      </Router>
       <Toaster 
         position="top-right"
         toastOptions={{

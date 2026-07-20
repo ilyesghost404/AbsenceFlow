@@ -1,16 +1,7 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const emailService = require("../utils/emailService");
-
-const validatePasswordStrength = (password) => {
-  if (!password || password.length < 8) return false;
-  let categories = 0;
-  if (/[A-Z]/.test(password)) categories++;
-  if (/[a-z]/.test(password)) categories++;
-  if (/[0-9]/.test(password)) categories++;
-  if (/[^A-Za-z0-9]/.test(password)) categories++;
-  return categories >= 3;
-};
+const { validateStrictPassword } = require("../utils/passwordUtils");
 
 const forgotPassword = async (req, res) => {
   try {
@@ -101,10 +92,10 @@ const resetPassword = async (req, res) => {
     }
 
     // Validate password strength
-    if (!validatePasswordStrength(newPassword)) {
+    if (!validateStrictPassword(newPassword)) {
       return res.status(400).json({ 
         success: false, 
-        message: "Password is too weak. It must be at least 8 characters long and contain a mix of uppercase, lowercase, numbers, and special characters." 
+        message: "Password is too weak. It must be at least 8 characters long and contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character." 
       });
     }
 

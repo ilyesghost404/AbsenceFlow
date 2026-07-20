@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const UAParser = require("ua-parser-js");
 const emailService = require("../utils/emailService");
+const { validateStrictPassword } = require("../utils/passwordUtils");
 
 const JWT_SECRET = process.env.JWT_SECRET || "absenceflow_jwt_secret_key_12345";
 
@@ -158,9 +159,9 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid or expired reset token" });
     }
 
-    // Validate password strength (simple backend check)
-    if (newPassword.length < 8) {
-      return res.status(400).json({ success: false, message: "Password must be at least 8 characters long" });
+    // Validate password strength
+    if (!validateStrictPassword(newPassword)) {
+      return res.status(400).json({ success: false, message: "Password is too weak. It must be at least 8 characters long and contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character." });
     }
 
     const password_hash = await bcrypt.hash(newPassword, 10);
@@ -207,8 +208,8 @@ const changePassword = async (req, res) => {
       return res.status(400).json({ success: false, message: "New password must be different from current password" });
     }
 
-    if (newPassword.length < 8) {
-      return res.status(400).json({ success: false, message: "Password must be at least 8 characters long" });
+    if (!validateStrictPassword(newPassword)) {
+      return res.status(400).json({ success: false, message: "Password is too weak. It must be at least 8 characters long and contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character." });
     }
 
     const password_hash = await bcrypt.hash(newPassword, 10);
@@ -428,8 +429,8 @@ const activateAccount = async (req, res) => {
       return res.status(400).json({ success: false, message: "Token and password are required" });
     }
 
-    if (password.length < 8) {
-      return res.status(400).json({ success: false, message: "Password must be at least 8 characters long" });
+    if (!validateStrictPassword(password)) {
+      return res.status(400).json({ success: false, message: "Password is too weak. It must be at least 8 characters long and contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character." });
     }
 
     const user = await User.getByActivationToken(token);
@@ -482,6 +483,9 @@ const updateUser = async (req, res) => {
 
     let password_hash = null;
     if (password) {
+      if (!validateStrictPassword(password)) {
+        return res.status(400).json({ success: false, message: "Password is too weak. It must be at least 8 characters long and contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character." });
+      }
       password_hash = await bcrypt.hash(password, 10);
     }
 

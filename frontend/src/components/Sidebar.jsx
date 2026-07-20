@@ -65,8 +65,9 @@ const Sidebar = ({ isOpen, onClose }) => {
   const handleMenuClick = (e, item, isMobile = false) => {
     if (item.path === '/attendance-verification') {
       e.preventDefault();
+      const popupUrl = window.location.href.split('#')[0] + '#' + item.path;
       const qrWindow = window.open(
-        item.path,
+        popupUrl,
         'QRPortalWindow'
       );
       

@@ -18,6 +18,8 @@ import StatusBadge from '../components/StatusBadge';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { getDashboardStats } from '../services/dashboardService';
 
+import { useNavigate, Link } from 'react-router-dom';
+
 // Timezone-safe local date parser
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return null;
@@ -29,6 +31,7 @@ const parseLocalDate = (dateStr) => {
 const ManagerDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -126,20 +129,20 @@ const ManagerDashboard = () => {
             <p className="text-slate-500 mt-1">Here's how your company is doing today</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <a 
-              href="/leave-requests" 
+            <Link 
+              to="/leave-requests" 
               className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-700 font-medium rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm text-sm"
             >
               <Clock size={16} className="text-amber-500" />
               Review Requests
-            </a>
-            <a 
-              href="/attendance" 
+            </Link>
+            <Link 
+              to="/attendance" 
               className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl hover:from-blue-500 hover:to-blue-600 transition-all shadow-md text-sm"
             >
               <CalendarDays size={16} />
               Manage Attendance
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -155,7 +158,7 @@ const ManagerDashboard = () => {
               iconColor: 'text-emerald-600',
               accent: 'hover:text-emerald-700',
               accentBar: 'bg-emerald-500',
-              action: () => window.location.href = '/employees',
+              action: () => navigate('/employees'),
             },
             {
               label: 'Open QR Portal',
@@ -164,7 +167,7 @@ const ManagerDashboard = () => {
               iconColor: 'text-blue-600',
               accent: 'hover:text-blue-700',
               accentBar: 'bg-blue-500',
-              action: () => window.open('/attendance-verification', 'QRPortalWindow'),
+              action: () => window.open(window.location.href.split('#')[0] + '#/attendance-verification', 'QRPortalWindow'),
             },
             {
               label: 'Add Department',
@@ -173,7 +176,7 @@ const ManagerDashboard = () => {
               iconColor: 'text-indigo-600',
               accent: 'hover:text-indigo-700',
               accentBar: 'bg-indigo-500',
-              action: () => window.location.href = '/departments',
+              action: () => navigate('/departments'),
             },
             {
               label: 'Add Holiday',
@@ -182,7 +185,7 @@ const ManagerDashboard = () => {
               iconColor: 'text-violet-600',
               accent: 'hover:text-violet-700',
               accentBar: 'bg-violet-500',
-              action: () => window.location.href = '/holidays',
+              action: () => navigate('/holidays'),
             },
             {
               label: 'Generate Reports',
@@ -191,7 +194,7 @@ const ManagerDashboard = () => {
               iconColor: 'text-teal-600',
               accent: 'hover:text-teal-700',
               accentBar: 'bg-teal-500',
-              action: () => window.location.href = '/reports',
+              action: () => navigate('/reports'),
             },
           ].map(({ label, icon: Icon, iconBg, iconColor, accent, accentBar, action }) => (
             <button
@@ -257,9 +260,9 @@ const ManagerDashboard = () => {
                   <p className="text-xs text-slate-400 font-medium">Real-time overview</p>
                 </div>
               </div>
-              <a href="/attendance" className="text-blue-600 hover:text-blue-700 text-sm font-semibold flex items-center gap-1 transition-colors">
+              <Link to="/attendance" className="text-blue-600 hover:text-blue-700 text-sm font-semibold flex items-center gap-1 transition-colors">
                 View All <ArrowRight size={14} />
-              </a>
+              </Link>
             </div>
             
             <div className="p-6">
@@ -368,9 +371,9 @@ const ManagerDashboard = () => {
                   <p className="text-xs text-slate-400 font-medium">Latest leave activity</p>
                 </div>
               </div>
-              <a href="/leave-requests" className="text-blue-600 hover:text-blue-700 text-sm font-semibold flex items-center gap-1 transition-colors">
+              <Link to="/leave-requests" className="text-blue-600 hover:text-blue-700 text-sm font-semibold flex items-center gap-1 transition-colors">
                 View All <ArrowRight size={14} />
-              </a>
+              </Link>
             </div>
             
             <div className="flex-1 overflow-y-auto custom-scrollbar">

@@ -7,6 +7,7 @@ node_modules/
 # Build files
 dist/
 build/
+desktop/dist-electron/
 
 # Logs
 *.log

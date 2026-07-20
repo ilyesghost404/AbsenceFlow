@@ -41,7 +41,6 @@ const RootRedirect = () => {
 
 const AppRoutes = () => {
   return (
-    <BrowserRouter>
       <AuthProvider>
         <Routes>
           {/* Public Routes */}
@@ -97,9 +96,8 @@ const AppRoutes = () => {
 
           {/* Fallback route */}
           <Route path="*" element={<RootRedirect />} />
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
+    </Routes>
+    </AuthProvider>
   );
 };
 

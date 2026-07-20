@@ -12,9 +12,15 @@ const Login = () => {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -30,8 +36,9 @@ const Login = () => {
 
     try {
       const user = await login(username, password, rememberMe);
-      navigate('/dashboard');
+      // Navigation is now handled by the useEffect watching isAuthenticated
     } catch (err) {
+      console.error('[Login] Submission Error:', err);
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
       setIsSubmitting(false);

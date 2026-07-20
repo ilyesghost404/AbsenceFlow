@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Lock, Eye, EyeOff, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Loader2, CheckCircle2, ShieldCheck } from 'lucide-react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import PasswordInput from '../components/PasswordInput';
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -11,7 +12,6 @@ const ResetPassword = () => {
   
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -24,27 +24,7 @@ const ResetPassword = () => {
     }
   }, [email, navigate]);
 
-  // Password strength logic
-  const [strength, setStrength] = useState({ score: 0, label: 'Weak', color: 'bg-red-500' });
-
-  useEffect(() => {
-    let score = 0;
-    if (newPassword.length >= 8) score += 1;
-    if (/[A-Z]/.test(newPassword)) score += 1;
-    if (/[a-z]/.test(newPassword)) score += 1;
-    if (/[0-9]/.test(newPassword)) score += 1;
-    if (/[^A-Za-z0-9]/.test(newPassword)) score += 1;
-
-    if (newPassword.length === 0) {
-      setStrength({ score: 0, label: '', color: 'bg-slate-700' });
-    } else if (score < 3) {
-      setStrength({ score, label: 'Weak', color: 'bg-red-500' });
-    } else if (score < 5) {
-      setStrength({ score, label: 'Medium', color: 'bg-amber-500' });
-    } else {
-      setStrength({ score, label: 'Strong', color: 'bg-emerald-500' });
-    }
-  }, [newPassword]);
+  const isStrong = newPassword.length >= 8 && /[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword) && /[0-9]/.test(newPassword) && /[!@#$%^&*()[\]{}\\|;:'",.<>/?~_+-=]/.test(newPassword);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -60,8 +40,8 @@ const ResetPassword = () => {
       return;
     }
 
-    if (strength.score < 3) {
-      setError('Please choose a stronger password');
+    if (!isStrong) {
+      setError('Please choose a stronger password that meets all requirements');
       return;
     }
 
@@ -127,77 +107,29 @@ const ResetPassword = () => {
               )}
 
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-slate-300">New Password</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                    <Lock size={18} />
-                  </div>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="block w-full pl-10 pr-12 py-3 bg-slate-800/40 border border-slate-700/50 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-slate-800/80 transition-all text-sm"
-                    placeholder="Enter new password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-                
-                {/* Password Strength Meter */}
-                {newPassword && (
-                  <div className="pt-2">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs text-slate-400">Password strength</span>
-                      <span className={`text-xs font-bold ${
-                        strength.label === 'Weak' ? 'text-red-400' : 
-                        strength.label === 'Medium' ? 'text-amber-400' : 'text-emerald-400'
-                      }`}>
-                        {strength.label}
-                      </span>
-                    </div>
-                    <div className="flex gap-1 h-1.5">
-                      <div className={`flex-1 rounded-full ${strength.score >= 1 ? strength.color : 'bg-slate-700'}`}></div>
-                      <div className={`flex-1 rounded-full ${strength.score >= 3 ? strength.color : 'bg-slate-700'}`}></div>
-                      <div className={`flex-1 rounded-full ${strength.score >= 4 ? strength.color : 'bg-slate-700'}`}></div>
-                      <div className={`flex-1 rounded-full ${strength.score >= 5 ? strength.color : 'bg-slate-700'}`}></div>
-                    </div>
-                    <ul className="text-[10px] text-slate-500 mt-2 space-y-0.5">
-                      <li className={newPassword.length >= 8 ? 'text-emerald-400' : ''}>• At least 8 characters</li>
-                      <li className={/[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword) ? 'text-emerald-400' : ''}>• Upper & lowercase letters</li>
-                      <li className={/[0-9]/.test(newPassword) ? 'text-emerald-400' : ''}>• At least one number</li>
-                      <li className={/[^A-Za-z0-9]/.test(newPassword) ? 'text-emerald-400' : ''}>• At least one special character</li>
-                    </ul>
-                  </div>
-                )}
+                <label className="block text-sm font-medium text-slate-300 mb-1">New Password</label>
+                <PasswordInput 
+                  value={newPassword}
+                  onChange={setNewPassword}
+                  disabled={isSubmitting}
+                  placeholder="Enter new password"
+                />
               </div>
 
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-slate-300">Confirm Password</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                    <Lock size={18} />
-                  </div>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="block w-full pl-10 pr-12 py-3 bg-slate-800/40 border border-slate-700/50 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-slate-800/80 transition-all text-sm"
-                    placeholder="Confirm new password"
-                  />
-                </div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Confirm Password</label>
+                <PasswordInput 
+                  value={confirmPassword}
+                  onChange={setConfirmPassword}
+                  disabled={isSubmitting}
+                  placeholder="Confirm new password"
+                />
               </div>
 
               <div>
                 <button
                   type="submit"
-                  disabled={isSubmitting || strength.score < 3 || newPassword !== confirmPassword}
+                  disabled={isSubmitting || !isStrong || newPassword !== confirmPassword}
                   className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg shadow-blue-600/20"
                 >
                   {isSubmitting ? (
