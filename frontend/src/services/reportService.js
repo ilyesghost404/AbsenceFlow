@@ -78,7 +78,7 @@ export const exportToExcel = async (filters = {}) => {
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `AbsenceFlow_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+  a.download = `WinSAP_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
   document.body.appendChild(a);
   a.click();
   a.remove();

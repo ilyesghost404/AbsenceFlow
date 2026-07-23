@@ -13,7 +13,7 @@ async function generateMonthlyReport(year, month) {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Attendance Report");
     
-    worksheet.addRow(["AbsenceFlow"]);
+    worksheet.addRow(["WinSAP"]);
     worksheet.addRow(["Monthly Attendance Report"]);
     worksheet.addRow([`${monthName} ${year}`]);
     worksheet.addRow([]);
@@ -148,29 +148,57 @@ async function generateMonthlyReport(year, month) {
 
 async function generateDetailedAttendanceReport(filters) {
     const { department_id, start_date, end_date, month } = filters;
-    let startDate, endDate, monthName, year;
+    let startDateStr, endDateStr, monthName, year, parsedMonth;
 
     if (month) {
         const [yStr, mStr] = month.split('-');
-        year = parseInt(yStr);
-        const parsedMonth = parseInt(mStr);
-        startDate = new Date(year, parsedMonth - 1, 1);
-        endDate = new Date(year, parsedMonth, 0);
-        monthName = startDate.toLocaleString('default', { month: 'long' });
+        year = parseInt(yStr, 10);
+        parsedMonth = parseInt(mStr, 10);
+        
+        const lastDayNum = new Date(year, parsedMonth, 0).getDate();
+        const mFormatted = String(parsedMonth).padStart(2, '0');
+        const lastDayFormatted = String(lastDayNum).padStart(2, '0');
+        
+        startDateStr = `${year}-${mFormatted}-01`;
+        endDateStr = `${year}-${mFormatted}-${lastDayFormatted}`;
+        
+        monthName = new Date(year, parsedMonth - 1, 1).toLocaleString('en-US', { month: 'long' });
     } else if (start_date && end_date) {
-        startDate = new Date(start_date);
-        endDate = new Date(end_date);
-        year = startDate.getFullYear();
+        startDateStr = toDateString(start_date);
+        endDateStr = toDateString(end_date);
+        
+        const [sY, sM, sD] = startDateStr.split('-').map(Number);
+        const sDate = new Date(sY, sM - 1, sD);
+        year = sDate.getFullYear();
         monthName = "Custom Range";
     } else {
         const now = new Date();
         year = now.getFullYear();
-        startDate = new Date(year, now.getMonth(), 1);
-        endDate = new Date(year, now.getMonth() + 1, 0);
-        monthName = startDate.toLocaleString('default', { month: 'long' });
+        parsedMonth = now.getMonth() + 1;
+        
+        const lastDayNum = new Date(year, parsedMonth, 0).getDate();
+        const mFormatted = String(parsedMonth).padStart(2, '0');
+        const lastDayFormatted = String(lastDayNum).padStart(2, '0');
+        
+        startDateStr = `${year}-${mFormatted}-01`;
+        endDateStr = `${year}-${mFormatted}-${lastDayFormatted}`;
+        
+        monthName = new Date(year, parsedMonth - 1, 1).toLocaleString('en-US', { month: 'long' });
     }
 
-    const totalDays = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    const [sY, sM, sD] = startDateStr.split('-').map(Number);
+    const [eY, eM, eD] = endDateStr.split('-').map(Number);
+
+    const startDate = new Date(sY, sM - 1, sD);
+    const endDate = new Date(eY, eM - 1, eD);
+
+    const dates = [];
+    let cur = new Date(sY, sM - 1, sD);
+    while (cur <= endDate) {
+        dates.push(new Date(cur));
+        cur.setDate(cur.getDate() + 1);
+    }
+    const totalDays = dates.length;
 
     let empQuery = "SELECT e.id, e.matricule, e.first_name, e.last_name, e.position, d.name as department FROM employees e LEFT JOIN departments d ON e.department_id = d.id";
     const empParams = [];
@@ -184,7 +212,7 @@ async function generateDetailedAttendanceReport(filters) {
 
     const holidaysResult = await db.query(
         "SELECT holiday_date, name FROM holidays WHERE holiday_date BETWEEN $1 AND $2",
-        [startDate, endDate]
+        [startDateStr, endDateStr]
     );
     const holidayMap = {};
     holidaysResult.rows.forEach(h => {
@@ -197,13 +225,13 @@ async function generateDetailedAttendanceReport(filters) {
          WHERE status = 'Validated' 
          AND start_date <= $2 
          AND end_date >= $1`,
-        [startDate, endDate]
+        [startDateStr, endDateStr]
     );
     const absences = absencesResult.rows;
 
     const attendanceResult = await db.query(
         "SELECT employee_id, date, status FROM attendance WHERE date BETWEEN $1 AND $2",
-        [startDate, endDate]
+        [startDateStr, endDateStr]
     );
     const attendanceMap = {};
     attendanceResult.rows.forEach(a => {
@@ -215,12 +243,12 @@ async function generateDetailedAttendanceReport(filters) {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Attendance Report");
 
-    worksheet.addRow(["AbsenceFlow"]);
+    worksheet.addRow(["WinSAP"]);
     worksheet.addRow(["Attendance Report"]);
     if (month) {
         worksheet.addRow([`Selected Month: ${monthName}`, `Selected Year: ${year}`]);
     } else {
-        worksheet.addRow([`Date Range: ${toDateString(startDate)} to ${toDateString(endDate)}`]);
+        worksheet.addRow([`Date Range: ${startDateStr} to ${endDateStr}`]);
     }
     const deptName = employees.length > 0 && department_id ? employees[0].department : "All Departments";
     worksheet.addRow([`Department: ${deptName}`, `Generated: ${new Date().toLocaleDateString()}`]);
@@ -233,11 +261,8 @@ async function generateDetailedAttendanceReport(filters) {
         { header: "Position", key: "position", width: 20 }
     ];
 
-    const dates = [];
     for (let day = 0; day < totalDays; day++) {
-        const d = new Date(startDate);
-        d.setDate(d.getDate() + day);
-        dates.push(d);
+        const d = dates[day];
         const dayStr = String(d.getDate()).padStart(2, '0');
         const monthShort = d.toLocaleString('en-US', { month: 'short' });
         columns.push({ header: `${dayStr} ${monthShort}`, key: `d_${day}`, width: 10 });
@@ -297,11 +322,12 @@ async function generateDetailedAttendanceReport(filters) {
             } else {
                 workingDays++;
                 
-                const matchedAbsence = absences.find(abs => 
-                    abs.employee_id === emp.id && 
-                    new Date(abs.start_date) <= d && 
-                    new Date(abs.end_date) >= d
-                );
+                const matchedAbsence = absences.find(abs => {
+                    if (abs.employee_id !== emp.id) return false;
+                    const aStartStr = toDateString(abs.start_date);
+                    const aEndStr = toDateString(abs.end_date);
+                    return aStartStr <= dateStr && aEndStr >= dateStr;
+                });
 
                 if (matchedAbsence) {
                     cellValue = 'A';

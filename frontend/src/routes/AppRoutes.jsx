@@ -54,8 +54,9 @@ const AppRoutes = () => {
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
             {/* Standalone Route for QR Portal */}
-            <Route element={<ProtectedRoute allowedRoles={['manager']} />}>
+            <Route element={<ProtectedRoute allowedRoles={['admin', 'manager']} />}>
               <Route path="/attendance-verification" element={<AttendanceVerification />} />
+              <Route path="/qr-portal" element={<AttendanceVerification />} />
             </Route>
 
             <Route element={<MainLayout />}>

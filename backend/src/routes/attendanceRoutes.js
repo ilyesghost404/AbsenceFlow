@@ -45,8 +45,18 @@ router.post("/", requireManager, createAttendance);
 router.put("/:id", requireManager, updateAttendance);
 router.delete("/:id", requireManager, deleteAttendance);
 
+const rateLimit = require("express-rate-limit");
+
+const faceVerificationLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 15,
+  message: { success: false, message: "Too many face verification attempts. Please wait a minute before trying again." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // AI Face & QR Code verification routes
-router.post("/verify-face", requireAuth, verifyFace);
+router.post("/verify-face", requireAuth, faceVerificationLimiter, verifyFace);
 router.post("/create-qr", requireAuth, authorizeRoles("manager"), createQr);
 router.post("/verify-qr", requireAuth, verifyQr);
 router.post("/check-in", requireAuth, checkInWithAI);

@@ -85,6 +85,40 @@ def compute_cosine_similarity(emb1, emb2):
         
     return float(dot / (norm1 * norm2))
 
+def crop_with_padding(org_img, bbox, scale, out_w, out_h, crop=True):
+    """
+    Crops the face patch from org_img with reflection padding.
+    Prevents scale clamping and negative slice index bugs when face is near frame edges.
+    """
+    if not crop or scale is None:
+        return cv2.resize(org_img, (out_w, out_h))
+        
+    src_h, src_w = org_img.shape[:2]
+    # Pad image generously to prevent scale clamping or negative slice indices
+    pad_h = int(src_h * 2)
+    pad_w = int(src_w * 2)
+    
+    padded_img = cv2.copyMakeBorder(
+        org_img, pad_h, pad_h, pad_w, pad_w, cv2.BORDER_REFLECT_101
+    )
+    
+    # Adjust bbox for padded image
+    padded_bbox = [bbox[0] + pad_w, bbox[1] + pad_h, bbox[2], bbox[3]]
+    
+    padded_h, padded_w = padded_img.shape[:2]
+    left_top_x, left_top_y, right_bottom_x, right_bottom_y = image_cropper._get_new_box(
+        padded_w, padded_h, padded_bbox, scale
+    )
+    
+    # Guarantee non-negative slice bounds inside padded_img
+    left_top_x = max(0, left_top_x)
+    left_top_y = max(0, left_top_y)
+    right_bottom_x = min(padded_w - 1, right_bottom_x)
+    right_bottom_y = min(padded_h - 1, right_bottom_y)
+    
+    cropped = padded_img[left_top_y:right_bottom_y+1, left_top_x:right_bottom_x+1]
+    return cv2.resize(cropped, (out_w, out_h))
+
 def check_liveness(img, image_bbox):
     """
     Wrapper for Silent-Face-Anti-Spoofing.
@@ -97,6 +131,9 @@ def check_liveness(img, image_bbox):
         if image_bbox[2] <= 0 or image_bbox[3] <= 0:
             return False, "Invalid face bounding box."
             
+        logger.info(f"=== LIVENESS CHECK START ===")
+        logger.info(f"Input image shape: {img.shape}, Face BBox [x, y, w, h]: {image_bbox}")
+        
         prediction = np.zeros((1, 3))
         
         # We use a single model from the directory for speed, or ensemble them. 
@@ -107,26 +144,29 @@ def check_liveness(img, image_bbox):
             
         for model_name in models:
             h_input, w_input, model_type, scale = parse_model_name(model_name)
-            param = {
-                "org_img": img,
-                "bbox": image_bbox,
-                "scale": scale,
-                "out_w": w_input,
-                "out_h": h_input,
-                "crop": True,
-            }
-            if scale is None:
-                param["crop"] = False
-            cropped_img = image_cropper.crop(**param)
-            prediction += anti_spoof_predict.predict(cropped_img, os.path.join(anti_spoof_model_dir, model_name))
+            cropped_img = crop_with_padding(img, image_bbox, scale, w_input, h_input, crop=True)
+            single_pred = anti_spoof_predict.predict(cropped_img, os.path.join(anti_spoof_model_dir, model_name))
+            logger.info(f"Model [{model_name}] (scale={scale}, out={w_input}x{h_input}): raw_probs={single_pred[0]}")
+            prediction += single_pred
             
-        label = np.argmax(prediction)
-        value = prediction[0][label] / len(models) # average prediction
+        avg_probs = prediction[0] / len(models)
+        label = np.argmax(avg_probs)
+        real_score = float(avg_probs[1])
+        fake1_score = float(avg_probs[0])
+        fake2_score = float(avg_probs[2])
         
-        if label == 1:
-            return True, f"RealFace Score: {value:.2f}"
+        # Configurable liveness threshold for Real Face (Class 1)
+        liveness_threshold = float(os.environ.get('LIVENESS_THRESHOLD', 0.40))
+        
+        is_real = (label == 1) or (real_score >= liveness_threshold and real_score > fake1_score)
+        
+        logger.info(f"Ensemble Probs: Class 0 (Print)={fake1_score:.4f}, Class 1 (Real)={real_score:.4f}, Class 2 (Replay)={fake2_score:.4f}")
+        logger.info(f"Liveness Decision -> is_real={is_real}, Selected Label={label}, Real Face Score={real_score:.4f}, Threshold={liveness_threshold}")
+        
+        if is_real:
+            return True, f"RealFace Score: {real_score:.2f}"
         else:
-            return False, f"FakeFace Score: {value:.2f}"
+            return False, f"FakeFace Score: {max(fake1_score, fake2_score):.2f}"
             
     except Exception as e:
         logger.error(f"Liveness check error: {e}")

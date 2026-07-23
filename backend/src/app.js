@@ -102,7 +102,7 @@ app.use("/api/auth/reset-password", authLimiter);
 // Test API route
 app.get("/", (req, res) => {
   res.json({
-    message: "AbsenceFlow API is running"
+    message: "WinSAP API is running"
   });
 });
 

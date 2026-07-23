@@ -518,7 +518,7 @@ const Settings = () => {
                     <LayoutGrid size={26} className="text-blue-600" />
                     Interface Settings
                   </h2>
-                  <p className="text-base font-medium text-slate-500 mt-2">Customize how AbsenceFlow looks and feels</p>
+                  <p className="text-base font-medium text-slate-500 mt-2">Customize how WinSAP looks and feels</p>
                 </div>
                 <div className="p-10 space-y-4">
                   {!appearanceLoading && (

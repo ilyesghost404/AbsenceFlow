@@ -1,5 +1,6 @@
 const Attendance = require("../models/Attendance");
 const FaceProfile = require("../models/FaceProfile");
+const FaceSecurityLog = require("../models/FaceSecurityLog");
 const QrSession = require("../models/QrSession");
 const { getHolidays, toDateString } = require("../services/attendanceService");
 const jwt = require("jsonwebtoken");
@@ -265,13 +266,21 @@ const verifyFace = async (req, res) => {
 
     const profile = await FaceProfile.getByEmployeeId(employeeId);
     if (!profile) {
-      return res.status(400).json({ success: false, message: "No face profile registered." });
+      return res.status(400).json({ success: false, message: "No face profile registered for this employee." });
     }
 
-    const storedEmbedding = profile.face_embedding;
-    if (!storedEmbedding || !Array.isArray(storedEmbedding)) {
-      return res.status(500).json({ success: false, message: "Biometric profile is missing or malformed." });
+    let storedEmbedding = profile.face_embedding;
+    if (typeof storedEmbedding === 'string') {
+      try { storedEmbedding = JSON.parse(storedEmbedding); } catch(e) {}
     }
+
+    if (!storedEmbedding || !Array.isArray(storedEmbedding) || storedEmbedding.length === 0) {
+      console.error(`❌ [Face Verification] Biometric profile missing or malformed for employee_id=${employeeId}:`, storedEmbedding);
+      return res.status(400).json({ success: false, message: "Biometric profile is missing or invalid. Please re-register your Face ID." });
+    }
+
+    console.log(`🔍 [Face Verification] Employee ID: ${employeeId}`);
+    console.log(`   Stored Embedding Length: ${storedEmbedding.length}`);
 
     // Call Local AI Service
     let aiResponse;
@@ -289,10 +298,12 @@ const verifyFace = async (req, res) => {
     const aiResult = await aiResponse.json();
     if (!aiResponse.ok || !aiResult.success) {
       const reason = aiResult.reason || "Face verification failed";
+      await FaceSecurityLog.record(employeeId, 'VERIFY', 'FAILED', null);
       return res.status(400).json({ success: false, message: reason, reason: aiResult.reason });
     }
 
     if (!aiResult.liveness) {
+      await FaceSecurityLog.record(employeeId, 'VERIFY', 'FAILED_LIVENESS', null);
       return res.status(400).json({ 
         success: false, 
         message: "Liveness verification failed.", 
@@ -301,12 +312,15 @@ const verifyFace = async (req, res) => {
     }
 
     if (!aiResult.match) {
+      await FaceSecurityLog.record(employeeId, 'VERIFY', 'FAILED_MATCH', aiResult.confidence);
       return res.status(400).json({ 
         success: false, 
         message: aiResult.message || "Face recognition failed.", 
         reason: aiResult.reason || "FACE_NOT_MATCHED"
       });
     }
+
+    await FaceSecurityLog.record(employeeId, 'VERIFY', 'SUCCESS', aiResult.confidence);
 
     // Generate signed faceToken
     const faceToken = jwt.sign(

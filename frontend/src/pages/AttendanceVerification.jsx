@@ -109,7 +109,7 @@ const AttendanceVerification = () => {
               <QrCode className="text-white" size={28} />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-800 tracking-tight">AbsenceFlow QR Portal</h1>
+              <h1 className="text-3xl font-bold text-slate-800 tracking-tight">WinSAP QR Portal</h1>
               <p className="text-slate-500 font-medium mt-1">Reception / Kiosk Display</p>
             </div>
           </div>

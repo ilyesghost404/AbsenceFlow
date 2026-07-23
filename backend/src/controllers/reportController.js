@@ -365,9 +365,9 @@ const exportToExcel = async (req, res) => {
             const [y, m] = queryParams.month.split('-');
             const date = new Date(parseInt(y), parseInt(m) - 1, 1);
             const monthName = date.toLocaleString('en-US', { month: 'short' });
-            fileName = `AbsenceFlow_Attendance_Report_${monthName}_${y}.xlsx`;
+            fileName = `WinSAP_Attendance_Report_${monthName}_${y}.xlsx`;
         } else {
-            fileName = `AbsenceFlow_Attendance_Report_${toDateString(new Date())}.xlsx`;
+            fileName = `WinSAP_Attendance_Report_${toDateString(new Date())}.xlsx`;
         }
         res.setHeader(
             'Content-Type',
@@ -432,9 +432,13 @@ const getAttendanceMatrix = async (req, res) => {
         const parsedYear = parseInt(year) || new Date().getFullYear();
         const parsedMonth = parseInt(month) || (new Date().getMonth() + 1);
 
-        const startDate = new Date(parsedYear, parsedMonth - 1, 1);
-        const endDate = new Date(parsedYear, parsedMonth, 0);
-        const totalDays = endDate.getDate();
+        const lastDayNum = new Date(parsedYear, parsedMonth, 0).getDate();
+        const mFormatted = String(parsedMonth).padStart(2, '0');
+        const lastDayFormatted = String(lastDayNum).padStart(2, '0');
+
+        const startDateStr = `${parsedYear}-${mFormatted}-01`;
+        const endDateStr = `${parsedYear}-${mFormatted}-${lastDayFormatted}`;
+        const totalDays = lastDayNum;
 
         const employeesResult = await db.query(
             "SELECT e.id, e.matricule, e.first_name, e.last_name, d.name as department FROM employees e LEFT JOIN departments d ON e.department_id = d.id ORDER BY e.matricule"
@@ -444,7 +448,7 @@ const getAttendanceMatrix = async (req, res) => {
         // 2. Fetch all holidays in this month range
         const holidaysResult = await db.query(
             "SELECT holiday_date, name FROM holidays WHERE holiday_date BETWEEN $1 AND $2",
-            [startDate, endDate]
+            [startDateStr, endDateStr]
         );
         const holidays = holidaysResult.rows;
         const holidayMap = {};
@@ -460,14 +464,14 @@ const getAttendanceMatrix = async (req, res) => {
              WHERE status = 'Validated' 
              AND start_date <= $2 
              AND end_date >= $1`,
-            [startDate, endDate]
+            [startDateStr, endDateStr]
         );
         const absences = absencesResult.rows;
 
         // 4. Fetch all attendance logs for this month range
         const attendanceResult = await db.query(
             "SELECT employee_id, date, status, validation_status, justification_reason FROM attendance WHERE date BETWEEN $1 AND $2",
-            [startDate, endDate]
+            [startDateStr, endDateStr]
         );
         const attendanceList = attendanceResult.rows;
 

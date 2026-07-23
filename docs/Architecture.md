@@ -2,7 +2,7 @@
 
 ## Overview
 
-AbsenceFlow follows a classic MVC pattern:
+WinSAP follows a classic MVC pattern:
 - Models handle database queries
 - Controllers handle request/response cycles
 - Routes define API endpoints

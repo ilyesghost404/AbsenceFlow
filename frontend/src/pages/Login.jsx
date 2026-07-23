@@ -56,7 +56,7 @@ const Login = () => {
           <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-2xl mb-4 border border-blue-400/20 transform hover:scale-105 transition-transform duration-300">
             <CalendarRange className="text-white" size={36} />
           </div>
-          <h2 className="text-3xl font-extrabold text-white tracking-tight">AbsenceFlow</h2>
+          <h2 className="text-3xl font-extrabold text-white tracking-tight">WinSAP</h2>
           <p className="mt-2 text-sm text-slate-400">
             Employee Absence & attendance management portal
           </p>

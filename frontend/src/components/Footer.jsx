@@ -11,7 +11,7 @@ const Footer = () => {
             <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md">
               <CalendarRange className="text-white" size={18} />
             </div>
-            <span className="text-lg font-black text-slate-800 tracking-tight">AbsenceFlow</span>
+            <span className="text-lg font-black text-slate-800 tracking-tight">WinSAP</span>
           </div>
           <p className="text-sm text-slate-500 leading-relaxed">
             Smart employee absence and attendance management system. Designed to streamline requests, tracking, and reporting.
@@ -83,7 +83,7 @@ const Footer = () => {
                 href="#help" 
                 onClick={(e) => {
                   e.preventDefault();
-                  alert('For support, please contact your administrator or refer to the AbsenceFlow documentation.');
+                  alert('For support, please contact your administrator or refer to the WinSAP documentation.');
                 }}
                 className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors duration-200 flex items-center gap-2"
               >
@@ -93,7 +93,7 @@ const Footer = () => {
             </li>
             <li>
               <a 
-                href="mailto:support@absenceflow.com" 
+                href="mailto:support@winsap.com" 
                 className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors duration-200 flex items-center gap-2"
               >
                 <Mail size={14} className="text-slate-400" />
@@ -107,7 +107,7 @@ const Footer = () => {
       {/* Bottom Section: Copyright */}
       <div className="mx-auto max-w-7xl px-6 py-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
         <p className="text-xs text-slate-400 font-medium">
-          &copy; 2026 AbsenceFlow. All rights reserved.
+          &copy; 2026 WinSAP. All rights reserved.
         </p>
         <div className="flex items-center gap-6">
           <a 

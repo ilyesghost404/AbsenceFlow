@@ -349,7 +349,7 @@ const createUser = async (req, res) => {
   const ipAddress = req.ip || req.headers["x-forwarded-for"] || req.socket.remoteAddress;
 
   try {
-    const { username, email, role, employee_id } = req.body;
+    const { username, email, role, employee_id, password } = req.body;
 
     if (!username || !email || !role) {
       return res.status(400).json({ success: false, message: "Username, email, and role are required" });
@@ -360,12 +360,26 @@ const createUser = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid email address format" });
     }
 
-    // Dummy password since they will set it themselves
-    const password_hash = "PENDING_ACTIVATION_" + crypto.randomBytes(16).toString("hex");
-    
-    // Generate Activation Token
-    const activationToken = crypto.randomBytes(32).toString("hex");
-    const activationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    let password_hash;
+    let account_status;
+    let is_verified;
+    let activationToken = null;
+    let activationTokenExpiry = null;
+
+    if (password) {
+      if (!validateStrictPassword(password)) {
+        return res.status(400).json({ success: false, message: "Password is too weak. It must be at least 8 characters long and contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character." });
+      }
+      password_hash = await bcrypt.hash(password, 10);
+      account_status = 'Active';
+      is_verified = true;
+    } else {
+      password_hash = "PENDING_ACTIVATION_" + crypto.randomBytes(16).toString("hex");
+      account_status = 'Pending';
+      is_verified = true; // Admin created user email is pre-verified by Admin
+      activationToken = crypto.randomBytes(32).toString("hex");
+      activationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    }
 
     const newUser = await User.create({
       username,
@@ -373,21 +387,24 @@ const createUser = async (req, res) => {
       password_hash,
       role,
       employee_id,
-      account_status: 'Pending',
+      account_status,
+      is_verified,
+      is_active: true,
       activation_token: activationToken,
       activation_token_expiry: activationTokenExpiry
     });
 
-    // Send Activation Email
-    const activationLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/activate-account?token=${activationToken}`;
-    await emailService.sendActivationEmail(email, username, activationLink);
+    if (!password && activationToken) {
+      const activationLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/activate-account?token=${activationToken}`;
+      await emailService.sendActivationEmail(email, username, activationLink);
+    }
 
     // Log activity
     await User.recordActivity(
       req.user.id,
       "user_created",
       newUser.id,
-      `User '${username}' created with role '${role}' by admin '${req.user.username}'. Activation email sent.`,
+      `User '${username}' created with role '${role}' by admin '${req.user.username}'.`,
       ipAddress
     );
 

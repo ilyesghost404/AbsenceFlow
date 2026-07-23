@@ -108,12 +108,16 @@ class User {
   }
 
   static async create(user) {
-    const { username, email, password_hash, role, employee_id, account_status, activation_token, activation_token_expiry } = user;
+    const { username, email, password_hash, role, employee_id, account_status, activation_token, activation_token_expiry, is_verified, is_active } = user;
+    const finalAccountStatus = account_status || 'Active';
+    const finalIsVerified = is_verified !== undefined ? is_verified : (finalAccountStatus === 'Active');
+    const finalIsActive = is_active !== undefined ? is_active : true;
+
     const result = await db.query(`
-      INSERT INTO users (username, email, password_hash, role, employee_id, account_status, activation_token, activation_token_expiry)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING id, username, email, role, employee_id, is_active, account_status, created_at, updated_at
-    `, [username, email, password_hash, role, employee_id || null, account_status || 'Active', activation_token || null, activation_token_expiry || null]);
+      INSERT INTO users (username, email, password_hash, role, employee_id, account_status, activation_token, activation_token_expiry, is_verified, is_active)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING id, username, email, role, employee_id, is_active, is_verified, account_status, created_at, updated_at
+    `, [username, email, password_hash, role, employee_id || null, finalAccountStatus, activation_token || null, activation_token_expiry || null, finalIsVerified, finalIsActive]);
     return result.rows[0];
   }
 
@@ -126,9 +130,9 @@ class User {
     if (password_hash) {
       query = `
         UPDATE users 
-        SET username = $1, email = $2, password_hash = $3, role = $4, employee_id = $5, is_active = $6, updated_at = CURRENT_TIMESTAMP
+        SET username = $1, email = $2, password_hash = $3, role = $4, employee_id = $5, is_active = $6, account_status = 'Active', is_verified = true, updated_at = CURRENT_TIMESTAMP
         WHERE id = $7
-        RETURNING id, username, email, role, employee_id, is_active, created_at, updated_at
+        RETURNING id, username, email, role, employee_id, is_active, is_verified, account_status, created_at, updated_at
       `;
       params = [username, email, password_hash, role, employee_id || null, is_active, id];
     } else {
@@ -136,7 +140,7 @@ class User {
         UPDATE users 
         SET username = $1, email = $2, role = $3, employee_id = $4, is_active = $5, updated_at = CURRENT_TIMESTAMP
         WHERE id = $6
-        RETURNING id, username, email, role, employee_id, is_active, created_at, updated_at
+        RETURNING id, username, email, role, employee_id, is_active, is_verified, account_status, created_at, updated_at
       `;
       params = [username, email, role, employee_id || null, is_active, id];
     }
@@ -156,7 +160,7 @@ class User {
   static async activateAccount(userId, passwordHash) {
     await db.query(`
       UPDATE users 
-      SET password_hash = $1, account_status = 'Active', activation_token = NULL, activation_token_expiry = NULL, activated_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+      SET password_hash = $1, account_status = 'Active', is_verified = TRUE, activation_token = NULL, activation_token_expiry = NULL, activated_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
       WHERE id = $2
     `, [passwordHash, userId]);
   }
@@ -389,6 +393,7 @@ class User {
     await db.query(`
       UPDATE users
       SET account_status = 'Active', 
+          is_verified = TRUE,
           activation_token = NULL, 
           activation_token_expiry = NULL, 
           activated_at = CURRENT_TIMESTAMP, 

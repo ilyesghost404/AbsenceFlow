@@ -235,11 +235,20 @@ const Reports = () => {
     }, 0);
   };
 
-  const handleExportExcel = async () => {
+  const handleOpenExportModal = () => {
+    setIsExportModalOpen(true);
+  };
+
+  const handleConfirmExport = async () => {
     try {
       setExporting(true);
-      await exportToExcel(activeFilters);
-      toast.success('Excel exported successfully');
+      const formattedMonth = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
+      await exportToExcel({
+        month: formattedMonth,
+        department_id: activeFilters.department_id || ''
+      });
+      toast.success(`Excel exported successfully for ${new Date(selectedYear, selectedMonth - 1, 1).toLocaleString('default', { month: 'long' })} ${selectedYear}`);
+      setIsExportModalOpen(false);
     } catch (error) {
       console.error('Error exporting:', error);
       toast.error('Failed to export Excel');
@@ -295,7 +304,7 @@ const Reports = () => {
             <Button
               variant="secondary"
               icon={FileSpreadsheet}
-              onClick={handleExportExcel}
+              onClick={handleOpenExportModal}
               loading={exporting}
             >
               Export Excel
@@ -740,6 +749,64 @@ const Reports = () => {
         }
       `}</style>
 
+      {/* Export Month Selection Modal */}
+      <Modal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Export Attendance Report"
+      >
+        <div className="space-y-6">
+          <p className="text-slate-600 font-medium">
+            Select the month to export
+          </p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Month</label>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(parseInt(e.target.value, 10))}
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-semibold text-slate-700"
+              >
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {new Date(0, i).toLocaleString('default', { month: 'long' })}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Year</label>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-semibold text-slate-700"
+              >
+                {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+            <Button
+              variant="secondary"
+              onClick={() => setIsExportModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              icon={FileSpreadsheet}
+              onClick={handleConfirmExport}
+              loading={exporting}
+            >
+              Export
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
     </div>
   );

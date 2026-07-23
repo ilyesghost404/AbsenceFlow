@@ -1,6 +1,6 @@
-# AbsenceFlow - Professional HR Attendance Management
+# WinSAP - Professional HR Attendance Management
 
-AbsenceFlow is a complete HR management application for employee attendance, absence, and leave tracking. It features automatic calculation, Excel report generation, and role-based access control.
+WinSAP is a complete HR management application for employee attendance, absence, and leave tracking. It features automatic calculation, Excel report generation, and role-based access control.
 
 ## Features
 

@@ -153,7 +153,20 @@ const getFaceStatus = async (req, res) => {
 
     const profile = await FaceProfile.getByEmployeeId(employeeId);
     
-    if (!profile) {
+    let embedding = profile?.face_embedding;
+    if (typeof embedding === 'string') {
+      try { embedding = JSON.parse(embedding); } catch(e) {}
+    }
+
+    const isRegistered = Boolean(
+      profile && 
+      embedding && 
+      Array.isArray(embedding) && 
+      embedding.length > 0 && 
+      profile.status === 'active'
+    );
+
+    if (!isRegistered) {
       return res.status(200).json({ 
         success: true, 
         registered: false,
@@ -184,16 +197,25 @@ const verifyCurrentFace = async (req, res) => {
     }
 
     const profile = await FaceProfile.getByEmployeeId(employeeId);
-    if (!profile || !profile.face_embedding) {
-      return res.status(400).json({ success: false, message: "No registered face profile found." });
+    let storedEmbedding = profile?.face_embedding;
+    if (typeof storedEmbedding === 'string') {
+      try { storedEmbedding = JSON.parse(storedEmbedding); } catch(e) {}
     }
+
+    if (!profile || !storedEmbedding || !Array.isArray(storedEmbedding) || storedEmbedding.length === 0) {
+      console.error(`❌ [Verify Current Face] Missing or invalid biometric profile for employee_id=${employeeId}`);
+      return res.status(400).json({ success: false, message: "No registered face profile found. Please register Face ID first." });
+    }
+
+    console.log(`🔍 [Verify Current Face] Employee ID: ${employeeId}`);
+    console.log(`   Stored Embedding Length: ${storedEmbedding.length}`);
 
     let aiResponse;
     try {
       aiResponse = await fetch("http://localhost:5001/api/ai/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image, embedding: profile.face_embedding })
+        body: JSON.stringify({ image, embedding: storedEmbedding })
       });
     } catch (err) {
       console.error("❌ AI Microservice connection failed:", err);

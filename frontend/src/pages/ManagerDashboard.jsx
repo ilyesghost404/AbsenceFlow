@@ -167,7 +167,7 @@ const ManagerDashboard = () => {
               iconColor: 'text-blue-600',
               accent: 'hover:text-blue-700',
               accentBar: 'bg-blue-500',
-              action: () => window.open(window.location.href.split('#')[0] + '#/attendance-verification', 'QRPortalWindow'),
+              action: () => window.open(`${window.location.origin}/attendance-verification`, '_blank'),
             },
             {
               label: 'Add Department',

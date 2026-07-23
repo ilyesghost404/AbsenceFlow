@@ -1,7 +1,7 @@
 {
-  "name": "absenceflow-backend",
+  "name": "winsap-backend",
   "version": "1.0.0",
-  "description": "Backend API for AbsenceFlow absence management application",
+  "description": "Backend API for WinSAP management application",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

@@ -6,7 +6,7 @@ const { runAttendanceScheduler } = require("./services/attendanceScheduler");
 const PORT = 5000;
 
 app.listen(PORT, async () => {
-    console.log(`AbsenceFlow API running on port ${PORT}`);
+    console.log(`WinSAP API running on port ${PORT}`);
 
     // Verify database connection before starting services
     const dbConnected = await checkDatabaseConnection();

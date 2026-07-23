@@ -28,7 +28,7 @@ const sendEmail = async (to, subject, htmlContent) => {
   
   try {
     const info = await transporter.sendMail({
-      from: `"${process.env.EMAIL_FROM_NAME || 'AbsenceFlow'}" <${process.env.EMAIL_FROM || 'no-reply@absenceflow.com'}>`,
+      from: `"${process.env.EMAIL_FROM_NAME || 'WinSAP'}" <${process.env.EMAIL_FROM || 'no-reply@winsap.com'}>`,
       to,
       subject,
       html: htmlContent,
@@ -49,7 +49,7 @@ const sendNewLoginEmail = async (userEmail, username, browser, device, ip, time)
     <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; border: 1px solid #eaeaea; border-radius: 10px;">
       <h2 style="color: #333;">New Login Detected</h2>
       <p>Hello ${username},</p>
-      <p>We noticed a new login to your AbsenceFlow account with the following details:</p>
+      <p>We noticed a new login to your WinSAP account with the following details:</p>
       <ul>
         <li><strong>Time:</strong> ${new Date(time).toLocaleString()}</li>
         <li><strong>Device:</strong> ${device || 'Unknown'}</li>
@@ -104,7 +104,7 @@ const sendAccountLockedEmail = async (userEmail, username) => {
 const sendVerificationEmail = async (userEmail, username, verificationLink) => {
   const html = `
     <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; border: 1px solid #eaeaea; border-radius: 10px;">
-      <h2 style="color: #333;">Welcome to AbsenceFlow</h2>
+      <h2 style="color: #333;">Welcome to WinSAP</h2>
       <p>Hello ${username},</p>
       <p>An account has been created for you. Please verify your email address to activate your account and set your password:</p>
       <a href="${verificationLink}" style="display: inline-block; padding: 12px 24px; background-color: #10b981; color: white; text-decoration: none; border-radius: 6px; margin: 15px 0;">Verify Email & Activate Account</a>
@@ -120,7 +120,7 @@ const sendActivationEmail = async (userEmail, username, activationLink) => {
       <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
         <!-- Header -->
         <div style="background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); padding: 32px 24px; text-align: center;">
-          <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">AbsenceFlow</h1>
+          <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">WinSAP</h1>
         </div>
         
         <!-- Content -->
@@ -153,13 +153,13 @@ const sendActivationEmail = async (userEmail, username, activationLink) => {
             Need help? Contact your IT administrator or reply to this email.
           </p>
           <p style="margin: 8px 0 0 0; font-size: 12px; color: #94a3b8;">
-            &copy; ${new Date().getFullYear()} AbsenceFlow. All rights reserved.
+            &copy; ${new Date().getFullYear()} WinSAP. All rights reserved.
           </p>
         </div>
       </div>
     </div>
   `;
-  return sendEmail(userEmail, "Activate Your AbsenceFlow Account", html);
+  return sendEmail(userEmail, "Activate Your WinSAP Account", html);
 };
 
 const sendOtpEmail = async (userEmail, username, otpCode, expiryMinutes = 10) => {
@@ -168,7 +168,7 @@ const sendOtpEmail = async (userEmail, username, otpCode, expiryMinutes = 10) =>
       <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
         <!-- Header -->
         <div style="background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); padding: 32px 24px; text-align: center;">
-          <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">AbsenceFlow</h1>
+          <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">WinSAP</h1>
         </div>
         
         <!-- Content -->
@@ -177,7 +177,7 @@ const sendOtpEmail = async (userEmail, username, otpCode, expiryMinutes = 10) =>
           
           <p style="font-size: 16px; line-height: 24px; color: #64748b; margin-bottom: 24px; text-align: left;">
             Hello ${username},<br><br>
-            We received a request to reset your password for your AbsenceFlow account. Please use the verification code below to verify your identity and set a new password:
+            We received a request to reset your password for your WinSAP account. Please use the verification code below to verify your identity and set a new password:
           </p>
           
           <!-- OTP Box -->
@@ -201,13 +201,13 @@ const sendOtpEmail = async (userEmail, username, otpCode, expiryMinutes = 10) =>
             Need help? Contact your administrator.
           </p>
           <p style="margin: 8px 0 0 0; font-size: 12px; color: #94a3b8;">
-            &copy; ${new Date().getFullYear()} AbsenceFlow. All rights reserved.
+            &copy; ${new Date().getFullYear()} WinSAP. All rights reserved.
           </p>
         </div>
       </div>
     </div>
   `;
-  return sendEmail(userEmail, "AbsenceFlow Password Reset Code", html);
+  return sendEmail(userEmail, "WinSAP Password Reset Code", html);
 };
 
 module.exports = {

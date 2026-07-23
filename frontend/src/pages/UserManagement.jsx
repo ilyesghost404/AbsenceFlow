@@ -122,10 +122,10 @@ const UserManagement = () => {
     e.preventDefault();
     try {
       const payload = { ...formData };
-      if (!payload.employee_id || payload.role !== 'employee') {
+      if (!payload.employee_id) {
         delete payload.employee_id;
       } else {
-        payload.employee_id = parseInt(payload.employee_id);
+        payload.employee_id = parseInt(payload.employee_id, 10);
       }
 
       if (editingUser) {

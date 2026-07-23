@@ -63,12 +63,12 @@ const Sidebar = ({ isOpen, onClose }) => {
   };
 
   const handleMenuClick = (e, item, isMobile = false) => {
-    if (item.path === '/attendance-verification') {
+    if (item.path === '/attendance-verification' || item.path === '/qr-portal') {
       e.preventDefault();
-      const popupUrl = window.location.href.split('#')[0] + '#' + item.path;
+      const popupUrl = `${window.location.origin}${item.path}`;
       const qrWindow = window.open(
         popupUrl,
-        'QRPortalWindow'
+        '_blank'
       );
       
       if (qrWindow) {
@@ -97,7 +97,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <CalendarRange className="text-white" size={28} />
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">AbsenceFlow</h1>
+                <h1 className="text-2xl font-bold tracking-tight">WinSAP</h1>
                 <p className="text-xs text-blue-200">HR Management</p>
               </div>
             </div>
@@ -165,7 +165,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <CalendarRange className="text-white" size={28} />
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">AbsenceFlow</h1>
+                <h1 className="text-2xl font-bold tracking-tight">WinSAP</h1>
                 <p className="text-xs text-blue-200">HR Management</p>
               </div>
             </div>
